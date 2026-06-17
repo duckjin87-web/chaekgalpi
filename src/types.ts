@@ -20,16 +20,27 @@ export interface NodeAttachment {
   name: string;
 }
 
+export type NodeLevel = "title" | "major" | "medium" | "minor";
+
+export type MindNodeKind = "bookmark" | "memo";
+
 export interface MindMapNodeData extends Record<string, unknown> {
   text: string;
   color: string;
   memo: string;
   attachments: NodeAttachment[];
+  /** 대/중/소 주제 구분 (bookmark 노드) */
+  level?: NodeLevel;
+  /** 포스트잇 메모 폰트 크기(px) */
+  fontSize?: number;
 }
 
 export interface MindMapNode {
   id: string;
+  type?: MindNodeKind;
   position: { x: number; y: number };
+  width?: number;
+  height?: number;
   data: MindMapNodeData;
 }
 

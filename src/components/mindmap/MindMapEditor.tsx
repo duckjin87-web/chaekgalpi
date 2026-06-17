@@ -16,27 +16,53 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useLibraryStore } from "../../store/useLibraryStore";
-import type { MindMapNodeData } from "../../types";
-import { randomBookmarkColor } from "../../theme";
+import type { MindMapNodeData, MindNodeKind } from "../../types";
+import { randomBookmarkColor, memoColors } from "../../theme";
 import BookmarkNode from "./BookmarkNode";
+import MemoNode from "./MemoNode";
 import NodeSidePanel from "./NodeSidePanel";
 
-type FlowNode = Node<MindMapNodeData, "bookmark">;
+type FlowNode = Node<MindMapNodeData, MindNodeKind>;
 type Snapshot = { nodes: FlowNode[]; edges: Edge[] };
 
-const nodeTypes = { bookmark: BookmarkNode };
+const nodeTypes = { bookmark: BookmarkNode, memo: MemoNode };
 const HISTORY_LIMIT = 50;
 
 interface MindMapEditorProps {
   bookId: string;
 }
 
-function makeNode(position: { x: number; y: number }): FlowNode {
+function makeNode(
+  kind: MindNodeKind,
+  position: { x: number; y: number }
+): FlowNode {
+  if (kind === "memo") {
+    return {
+      id: crypto.randomUUID(),
+      type: "memo",
+      position,
+      width: 200,
+      height: 140,
+      data: {
+        text: "",
+        color: memoColors[0],
+        memo: "",
+        attachments: [],
+        fontSize: 14,
+      },
+    };
+  }
   return {
     id: crypto.randomUUID(),
     type: "bookmark",
     position,
-    data: { text: "새 노드", color: randomBookmarkColor(), memo: "", attachments: [] },
+    data: {
+      text: "새 노드",
+      color: randomBookmarkColor(),
+      memo: "",
+      attachments: [],
+      level: "medium",
+    },
   };
 }
 
@@ -49,8 +75,10 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     () =>
       (mindMap?.nodes ?? []).map((n) => ({
         id: n.id,
-        type: "bookmark" as const,
+        type: (n.type ?? "bookmark") as MindNodeKind,
         position: n.position,
+        ...(n.width ? { width: n.width } : {}),
+        ...(n.height ? { height: n.height } : {}),
         data: n.data,
       })),
     [mindMap?.id]
@@ -110,7 +138,14 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
       restoringRef.current = false;
     }
     updateMindMap(bookId, {
-      nodes: nodes.map((n) => ({ id: n.id, position: n.position, data: n.data })),
+      nodes: nodes.map((n) => ({
+        id: n.id,
+        type: (n.type ?? "bookmark") as MindNodeKind,
+        position: n.position,
+        width: n.width ?? n.measured?.width,
+        height: n.height ?? n.measured?.height,
+        data: n.data,
+      })),
       edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,17 +170,36 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     onNodesChangeBase(changes);
   }
 
-  function addNode(position: { x: number; y: number }) {
+  function addNode(kind: MindNodeKind, position?: { x: number; y: number }) {
     pushHistory(snapshotNow());
-    setNodes((nds) => [...nds, makeNode(position)]);
+    const parent = selectedId ? nodes.find((n) => n.id === selectedId) : undefined;
+    const pos =
+      position ??
+      (parent
+        ? { x: parent.position.x + 40, y: parent.position.y + 140 }
+        : { x: Math.random() * 300, y: Math.random() * 200 });
+    const node = makeNode(kind, pos);
+    setNodes((nds) => [...nds, node]);
+    // 기능 5: 선택된 노드가 있으면 새 노드를 연결해서 생성
+    if (parent && !position) {
+      setEdges((eds) =>
+        addEdge({ id: crypto.randomUUID(), source: parent.id, target: node.id }, eds)
+      );
+    }
+    setSelectedId(node.id);
   }
 
   function handlePaneDoubleClick(event: MouseEvent) {
     const target = event.target as HTMLElement;
-    const isPane = target.classList.contains("react-flow__pane") || target.classList.contains("react-flow__background");
+    const isPane =
+      target.classList.contains("react-flow__pane") ||
+      target.classList.contains("react-flow__background");
     if (!isPane) return;
     const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-    addNode(position);
+    pushHistory(snapshotNow());
+    const node = makeNode("bookmark", position);
+    setNodes((nds) => [...nds, node]);
+    setSelectedId(node.id);
   }
 
   function updateNodeData(id: string, patch: Partial<MindMapNodeData>) {
@@ -169,28 +223,40 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     setSelectedId(null);
   }
 
+  // 기능 2: 연결선 클릭 시 삭제
+  function handleEdgeClick(_: MouseEvent, edge: Edge) {
+    pushHistory(snapshotNow());
+    setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+  }
+
   const selectedNode = nodes.find((n) => n.id === selectedId) ?? null;
 
   return (
     <div className="relative h-[600px] w-full rounded-md border border-stone-300 bg-[#faf7f0]">
-      <div className="absolute left-4 top-4 z-10">
-        <button
-          onClick={() => {
-            pushHistory(snapshotNow());
-            addNode({ x: Math.random() * 300, y: Math.random() * 200 });
-          }}
-          className="rounded bg-emerald-800 px-3 py-1.5 text-sm text-white shadow hover:bg-emerald-900"
-        >
-          + 노드 추가
-        </button>
-        <p className="mt-1 text-xs text-stone-400">
-          캔버스를 더블클릭해도 추가돼요 · Ctrl+Z로 되돌리기
+      <div className="absolute left-4 top-4 z-10 flex flex-col gap-1">
+        <div className="flex gap-2">
+          <button
+            onClick={() => addNode("bookmark")}
+            className="rounded bg-emerald-800 px-3 py-1.5 text-sm text-white shadow hover:bg-emerald-900"
+          >
+            + 노드 추가
+          </button>
+          <button
+            onClick={() => addNode("memo")}
+            className="rounded bg-amber-500 px-3 py-1.5 text-sm text-stone-900 shadow hover:bg-amber-400"
+          >
+            + 메모
+          </button>
+        </div>
+        <p className="text-xs text-stone-400">
+          노드 선택 후 추가 시 연결됨 · 빈 곳 더블클릭=노드 · 선 클릭=삭제 · Ctrl+Z 되돌리기
         </p>
       </div>
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        defaultEdgeOptions={{ style: { strokeWidth: 2.5, stroke: "#57534e" } }}
         onNodesChange={onNodesChange}
         onEdgesChange={(changes) => {
           pushHistory(snapshotNow());
@@ -201,6 +267,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
           setEdges((eds) => addEdge({ ...connection, id: crypto.randomUUID() }, eds));
         }}
         onNodeClick={(_, node) => setSelectedId(node.id)}
+        onEdgeClick={handleEdgeClick}
         onPaneClick={() => setSelectedId(null)}
         onDoubleClick={handlePaneDoubleClick}
         zoomOnDoubleClick={false}

@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useLibraryStore } from "../store/useLibraryStore";
 import MindMapEditor from "../components/mindmap/MindMapEditor";
 import ReviewEditor from "../components/review/ReviewEditor";
+import EditBookModal from "../components/library/EditBookModal";
 
 type Tab = "mindmap" | "review";
 
@@ -11,7 +12,9 @@ export default function BookDetailPage() {
   const navigate = useNavigate();
   const book = useLibraryStore((s) => s.books.find((b) => b.id === bookId));
   const removeBook = useLibraryStore((s) => s.removeBook);
+  const updateBook = useLibraryStore((s) => s.updateBook);
   const [tab, setTab] = useState<Tab>("mindmap");
+  const [showEditModal, setShowEditModal] = useState(false);
 
   if (!book || !bookId) {
     return (
@@ -40,12 +43,27 @@ export default function BookDetailPage() {
       <div className="mt-2 mb-4 flex items-center justify-between">
         <div>
           <h1 className="font-serif text-2xl font-bold text-stone-800">{book.title}</h1>
-          <p className="text-sm text-stone-500">{book.author}</p>
+          <p className="text-sm text-stone-500">
+            {book.author}
+            {book.pageCount ? ` · ${book.pageCount}쪽` : ""}
+          </p>
         </div>
-        <button onClick={handleDelete} className="text-sm text-red-600 hover:underline">
-          책 삭제
-        </button>
+        <div className="flex gap-3">
+          <button onClick={() => setShowEditModal(true)} className="text-sm text-stone-600 hover:underline">
+            정보 수정
+          </button>
+          <button onClick={handleDelete} className="text-sm text-red-600 hover:underline">
+            책 삭제
+          </button>
+        </div>
       </div>
+      {showEditModal && (
+        <EditBookModal
+          book={currentBook}
+          onClose={() => setShowEditModal(false)}
+          onSave={(patch) => updateBook(currentBook.id, patch)}
+        />
+      )}
 
       <div className="mb-4 flex gap-4 border-b border-stone-200">
         <button

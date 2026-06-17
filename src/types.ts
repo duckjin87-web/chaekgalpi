@@ -5,6 +5,7 @@ export interface Book {
   title: string;
   author: string;
   coverUrl?: string;
+  pageCount?: number;
   status: BookStatus;
   rating?: number;
   startDate?: string;

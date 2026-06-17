@@ -79,12 +79,6 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
           {data.text}
         </p>
       )}
-      {!editing && (data.memo || data.attachments.length > 0) && (
-        <div className="mt-1 flex items-center gap-1 text-[11px] text-white/80">
-          {data.memo && <span>📝</span>}
-          {data.attachments.length > 0 && <span>🖼 {data.attachments.length}</span>}
-        </div>
-      )}
       <Handle type="source" position={Position.Right} className={handleClass} />
 
       {/* 기능 5: 노드 자체의 + 버튼 → 연결된 자식 노드 생성 */}

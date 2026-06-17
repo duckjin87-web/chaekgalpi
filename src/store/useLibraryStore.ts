@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Book, MindMap, MindMapEdge, MindMapNode, Review } from "../types";
 import { seedBooks, seedMindMaps, seedReviews } from "../data/seed";
+import { bookmarkColors } from "../theme";
 
 interface LibraryState {
   books: Book[];
@@ -32,11 +33,24 @@ export const useLibraryStore = create<LibraryState>()(
           id: crypto.randomUUID(),
           createdAt: new Date().toISOString(),
         };
+        // 책 생성 시 책 제목으로 된 '제목' 노드를 필수로 생성
+        const titleNode: MindMapNode = {
+          id: crypto.randomUUID(),
+          type: "bookmark",
+          position: { x: 0, y: 0 },
+          data: {
+            text: newBook.title,
+            color: bookmarkColors[0],
+            memo: "",
+            attachments: [],
+            level: "title",
+          },
+        };
         const newMindMap: MindMap = {
           id: crypto.randomUUID(),
           bookId: newBook.id,
           title: `${newBook.title} 마인드맵`,
-          nodes: [],
+          nodes: [titleNode],
           edges: [],
           updatedAt: new Date().toISOString(),
         };

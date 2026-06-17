@@ -1,5 +1,4 @@
-import type { ChangeEvent } from "react";
-import type { MindMapNodeData, MindNodeKind, NodeAttachment, NodeLevel } from "../../types";
+import type { MindMapNodeData, MindNodeKind, NodeLevel } from "../../types";
 import { bookmarkColors, memoColors, nodeLevelOrder, nodeLevelStyle } from "../../theme";
 import { useMindMapActions } from "./MindMapContext";
 
@@ -13,28 +12,9 @@ export default function InlineNodeEditor({ id, type, data }: InlineNodeEditorPro
   const { updateNodeData, deleteNode, clearSelection } = useMindMapActions();
   const isMemo = type === "memo";
 
-  function handleFile(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const attachment: NodeAttachment = {
-        id: crypto.randomUUID(),
-        url: String(reader.result),
-        name: file.name,
-      };
-      updateNodeData(id, { attachments: [...data.attachments, attachment] });
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function removeAttachment(attachmentId: string) {
-    updateNodeData(id, { attachments: data.attachments.filter((a) => a.id !== attachmentId) });
-  }
-
   return (
     <div
-      className="nodrag nopan nowheel absolute left-0 top-full z-20 mt-2 max-h-[320px] w-64 space-y-2.5 overflow-y-auto rounded-md border border-stone-300 bg-white p-3 text-left shadow-xl"
+      className="nodrag nopan nowheel absolute left-0 top-full z-20 mt-2 w-56 space-y-2.5 rounded-md border border-stone-300 bg-white p-3 text-left shadow-xl"
       onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
@@ -48,7 +28,7 @@ export default function InlineNodeEditor({ id, type, data }: InlineNodeEditorPro
         </button>
       </div>
 
-      {/* 기능 3: 대/중/소 주제 구분 (bookmark 전용) */}
+      {/* 주제 단계 (bookmark 전용) */}
       {!isMemo && (
         <div>
           <label className="block text-[11px] font-medium text-stone-500">주제 단계</label>
@@ -70,7 +50,7 @@ export default function InlineNodeEditor({ id, type, data }: InlineNodeEditorPro
         </div>
       )}
 
-      {/* 기능 4: 메모 폰트 크기 */}
+      {/* 메모 글자 크기 */}
       {isMemo && (
         <div>
           <label className="block text-[11px] font-medium text-stone-500">
@@ -84,10 +64,10 @@ export default function InlineNodeEditor({ id, type, data }: InlineNodeEditorPro
             onChange={(e) => updateNodeData(id, { fontSize: Number(e.target.value) })}
             className="mt-1 w-full"
           />
-          <p className="text-[10px] text-stone-400">크기는 메모 모서리를 드래그해서 조절하세요.</p>
         </div>
       )}
 
+      {/* 색상 */}
       <div>
         <label className="block text-[11px] font-medium text-stone-500">색상</label>
         <div className="mt-1 flex gap-1">
@@ -104,38 +84,6 @@ export default function InlineNodeEditor({ id, type, data }: InlineNodeEditorPro
           ))}
         </div>
       </div>
-
-      {!isMemo && (
-        <>
-          <div>
-            <label className="block text-[11px] font-medium text-stone-500">메모</label>
-            <textarea
-              className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
-              rows={3}
-              value={data.memo}
-              onChange={(e) => updateNodeData(id, { memo: e.target.value })}
-              placeholder="이 노드에 대한 생각을 적어보세요."
-            />
-          </div>
-          <div>
-            <label className="block text-[11px] font-medium text-stone-500">이미지 첨부</label>
-            <input type="file" accept="image/*" onChange={handleFile} className="mt-1 text-xs" />
-            <div className="mt-2 flex flex-wrap gap-2">
-              {data.attachments.map((a) => (
-                <div key={a.id} className="relative h-14 w-14">
-                  <img src={a.url} alt={a.name} className="h-full w-full rounded object-cover" />
-                  <button
-                    onClick={() => removeAttachment(a.id)}
-                    className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] text-white"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
 
       <button
         onClick={() => deleteNode(id)}

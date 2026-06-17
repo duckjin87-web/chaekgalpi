@@ -1,6 +1,6 @@
-# chaekgalpi
+# chaekgalpi (책갈피)
 
-책장 위에 책을 트리 구조로 꽂아두는 시각화 앱.
+책을 읽으며 마인드맵으로 정리하고, 다 읽으면 독후감을 남기는 개인 독서 서재. 자세한 기능 명세는 [docs/SPEC.md](docs/SPEC.md) 참고.
 
 ## 폴더 구조
 
@@ -14,11 +14,21 @@
 └── src/
     ├── App.tsx
     ├── main.tsx
-    ├── types.ts  · theme.ts · index.css
+    ├── types.ts · theme.ts · index.css
+    ├── store/
+    │   └── useLibraryStore.ts
     ├── data/
     │   └── seed.ts
+    ├── pages/
+    │   ├── LibraryPage.tsx
+    │   └── BookDetailPage.tsx
     └── components/
-        ├── Shelf.tsx · BookSpine.tsx · Editor.tsx · BookNode.tsx
+        ├── library/
+        │   ├── BookCard.tsx · AddBookModal.tsx · LibraryToolbar.tsx
+        ├── mindmap/
+        │   ├── MindMapEditor.tsx · BookmarkNode.tsx · NodeSidePanel.tsx
+        └── review/
+            ├── ReviewEditor.tsx · RatingStars.tsx · QuoteList.tsx
 ```
 
 ## 개발

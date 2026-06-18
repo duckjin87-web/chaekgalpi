@@ -102,9 +102,20 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     function handleKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement;
       const typing = ["INPUT", "TEXTAREA"].includes(target.tagName) || target.isContentEditable;
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !typing) {
+      if (typing) return;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
         undo();
+        return;
+      }
+      if (e.key === "Delete" || e.key === "Backspace") {
+        const selected = nodes.filter((n) => n.selected);
+        if (selected.length === 0) return;
+        e.preventDefault();
+        pushHistory(snapshotNow());
+        const selectedIds = new Set(selected.map((n) => n.id));
+        setNodes((nds) => nds.filter((n) => !selectedIds.has(n.id)));
+        setEdges((eds) => eds.filter((ed) => !selectedIds.has(ed.source) && !selectedIds.has(ed.target)));
       }
     }
     window.addEventListener("keydown", handleKeyDown);
@@ -219,7 +230,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
 
   return (
     <MindMapContext.Provider value={actions}>
-      <div className="relative h-[600px] w-full rounded-md border border-stone-300 bg-[#faf7f0]">
+      <div className="relative h-full w-full rounded-md border border-stone-300 bg-[#faf7f0]">
         <div className="absolute left-4 top-4 z-10 flex flex-col gap-1">
           <div className="flex gap-2">
             <button

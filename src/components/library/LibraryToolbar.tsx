@@ -6,6 +6,11 @@ interface LibraryToolbarProps {
   statusFilter: BookStatus | "전체";
   onStatusFilterChange: (value: BookStatus | "전체") => void;
   onAddClick: () => void;
+  years?: number[];
+  yearFilter?: number | "전체";
+  onYearFilterChange?: (value: number | "전체") => void;
+  monthFilter?: number | "전체";
+  onMonthFilterChange?: (value: number | "전체") => void;
 }
 
 export default function LibraryToolbar({
@@ -14,7 +19,14 @@ export default function LibraryToolbar({
   statusFilter,
   onStatusFilterChange,
   onAddClick,
+  years,
+  yearFilter,
+  onYearFilterChange,
+  monthFilter,
+  onMonthFilterChange,
 }: LibraryToolbarProps) {
+  const showDateFilters = !!years && years.length > 0 && onYearFilterChange && onMonthFilterChange;
+
   return (
     <div className="mb-6 flex flex-wrap items-center gap-3">
       <input
@@ -33,6 +45,38 @@ export default function LibraryToolbar({
         <option value="읽는중">읽는 중</option>
         <option value="완독">완독</option>
       </select>
+      {showDateFilters && (
+        <>
+          <select
+            value={yearFilter}
+            onChange={(e) =>
+              onYearFilterChange!(e.target.value === "전체" ? "전체" : Number(e.target.value))
+            }
+            className="rounded border border-stone-300 px-2 py-1.5 text-sm"
+          >
+            <option value="전체">연도 전체</option>
+            {years!.map((y) => (
+              <option key={y} value={y}>
+                {y}년
+              </option>
+            ))}
+          </select>
+          <select
+            value={monthFilter}
+            onChange={(e) =>
+              onMonthFilterChange!(e.target.value === "전체" ? "전체" : Number(e.target.value))
+            }
+            className="rounded border border-stone-300 px-2 py-1.5 text-sm"
+          >
+            <option value="전체">월 전체</option>
+            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+              <option key={m} value={m}>
+                {m}월
+              </option>
+            ))}
+          </select>
+        </>
+      )}
       <button
         onClick={onAddClick}
         className="ml-auto rounded bg-emerald-800 px-3 py-1.5 text-sm text-white hover:bg-emerald-900"

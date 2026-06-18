@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useLibraryStore } from "../store/useLibraryStore";
 import MindMapEditor from "../components/mindmap/MindMapEditor";
 import ReviewEditor from "../components/review/ReviewEditor";
@@ -13,7 +13,8 @@ export default function BookDetailPage() {
   const book = useLibraryStore((s) => s.books.find((b) => b.id === bookId));
   const removeBook = useLibraryStore((s) => s.removeBook);
   const updateBook = useLibraryStore((s) => s.updateBook);
-  const [tab, setTab] = useState<Tab>("mindmap");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState<Tab>(searchParams.get("tab") === "review" ? "review" : "mindmap");
   const [showEditModal, setShowEditModal] = useState(false);
 
   if (!book || !bookId) {
@@ -36,7 +37,7 @@ export default function BookDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 p-6">
+    <div className="flex h-screen flex-col bg-stone-50 p-6">
       <Link to="/" className="text-sm text-stone-500 hover:underline">
         ← 서재로
       </Link>
@@ -65,7 +66,7 @@ export default function BookDetailPage() {
         />
       )}
 
-      <div className="mb-4 flex gap-4 border-b border-stone-200">
+      <div className="mb-4 flex flex-shrink-0 gap-4 border-b border-stone-200">
         <button
           onClick={() => setTab("mindmap")}
           className={`pb-2 text-sm ${
@@ -84,7 +85,9 @@ export default function BookDetailPage() {
         </button>
       </div>
 
-      {tab === "mindmap" ? <MindMapEditor bookId={bookId} /> : <ReviewEditor bookId={bookId} />}
+      <div className={`min-h-0 flex-1 ${tab === "mindmap" ? "overflow-hidden" : "overflow-auto"}`}>
+        {tab === "mindmap" ? <MindMapEditor bookId={bookId} /> : <ReviewEditor bookId={bookId} />}
+      </div>
     </div>
   );
 }

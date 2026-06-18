@@ -15,15 +15,23 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
   const style = nodeLevelStyle[level];
   const { updateNodeData, addChild } = useMindMapActions();
   const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(data.text);
   const pressTimer = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editing) {
+      setDraft(data.text);
       inputRef.current?.focus();
       inputRef.current?.select();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
+
+  function commitDraft() {
+    setEditing(false);
+    if (draft !== data.text) updateNodeData(id, { text: draft });
+  }
 
   function startPress() {
     pressTimer.current = window.setTimeout(() => setEditing(true), 500);
@@ -61,11 +69,15 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
           ref={inputRef}
           className="nodrag w-full rounded bg-white/95 px-1 text-stone-900 outline-none"
           style={{ fontSize: style.fontSize, fontWeight: style.fontWeight }}
-          value={data.text}
-          onChange={(e) => updateNodeData(id, { text: e.target.value })}
-          onBlur={() => setEditing(false)}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commitDraft}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
+              e.preventDefault();
+              commitDraft();
+            }
+            if (e.key === "Escape") {
               e.preventDefault();
               setEditing(false);
             }
@@ -93,7 +105,7 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
         +
       </button>
 
-      {selected && <InlineNodeEditor id={id} type="bookmark" data={data} />}
+      {selected && <InlineNodeEditor id={id} data={data} />}
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Handle, Position, NodeResizer, type Node, type NodeProps } from "@xyflow/react";
 import type { MindMapNodeData } from "../../types";
+import { memoColors, randomMemoColor } from "../../theme";
 import { useMindMapActions } from "./MindMapContext";
-import InlineNodeEditor from "./InlineNodeEditor";
 
 type MemoFlowNode = Node<MindMapNodeData, "memo">;
 
@@ -13,12 +13,22 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
   const fontSize = data.fontSize ?? 14;
   const { updateNodeData, addChild } = useMindMapActions();
   const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(data.text);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const pressTimer = useRef<number | null>(null);
 
   useEffect(() => {
-    if (editing) textRef.current?.focus();
+    if (editing) {
+      setDraft(data.text);
+      textRef.current?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
+
+  function commitDraft() {
+    setEditing(false);
+    if (draft !== data.text) updateNodeData(id, { text: draft });
+  }
 
   function startPress() {
     pressTimer.current = window.setTimeout(() => setEditing(true), 500);
@@ -58,14 +68,50 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
         onPointerMove={cancelPress}
         onPointerLeave={cancelPress}
       >
+        {selected && (
+          <div
+            className="nodrag nopan mb-2 flex items-center gap-1.5"
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {memoColors.map((color) => (
+              <button
+                key={color}
+                onClick={() => updateNodeData(id, { color })}
+                className={`h-4 w-4 rounded-full border ${
+                  data.color === color ? "border-stone-800" : "border-white/70"
+                }`}
+                style={{ backgroundColor: color }}
+                aria-label={color}
+              />
+            ))}
+            <button
+              onClick={() => updateNodeData(id, { color: randomMemoColor() })}
+              className="flex h-4 w-4 items-center justify-center rounded-full border border-white/70 bg-stone-200 text-[9px]"
+              title="색상 랜덤"
+            >
+              🎲
+            </button>
+            <input
+              type="range"
+              min={10}
+              max={32}
+              value={fontSize}
+              onChange={(e) => updateNodeData(id, { fontSize: Number(e.target.value) })}
+              className="ml-1 h-3 w-16"
+              title="글자 크기"
+            />
+          </div>
+        )}
         {editing ? (
           <textarea
             ref={textRef}
             className="nodrag h-full w-full resize-none bg-transparent outline-none"
             style={{ fontSize }}
-            value={data.text}
-            onChange={(e) => updateNodeData(id, { text: e.target.value })}
-            onBlur={() => setEditing(false)}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commitDraft}
             placeholder="메모를 입력하세요"
           />
         ) : (
@@ -86,8 +132,6 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
       >
         +
       </button>
-
-      {selected && <InlineNodeEditor id={id} type="memo" data={data} />}
     </div>
   );
 }

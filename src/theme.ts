@@ -33,3 +33,7 @@ export const memoColors = [
   "#BDE0FE", // 하늘
   "#FFC6D9", // 분홍
 ] as const;
+
+export function randomMemoColor(): string {
+  return memoColors[Math.floor(Math.random() * memoColors.length)];
+}

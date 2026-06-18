@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Book, BookStatus } from "../../types";
 import { searchBooksByTitle, type BookSearchResult } from "../../lib/bookSearch";
 
@@ -18,6 +18,16 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
   const [results, setResults] = useState<BookSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const lastAppliedTitle = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (title.trim().length < 2 || title === lastAppliedTitle.current) return;
+    const timer = window.setTimeout(() => {
+      handleSearch();
+    }, 600);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title]);
 
   async function handleSearch() {
     if (!title.trim()) return;
@@ -35,6 +45,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
   }
 
   function applyResult(result: BookSearchResult) {
+    lastAppliedTitle.current = result.title;
     setTitle(result.title);
     setAuthor(result.author);
     setCoverUrl(result.coverUrl);
@@ -82,7 +93,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
               disabled={searching || !title.trim()}
               className="shrink-0 rounded bg-stone-700 px-2 py-1 text-xs text-white hover:bg-stone-800 disabled:opacity-50"
             >
-              {searching ? "검색중" : "검색"}
+              {searching ? "검색중…" : "검색"}
             </button>
           </div>
           {searchError && <p className="mt-1 text-xs text-red-500">{searchError}</p>}

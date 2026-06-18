@@ -17,10 +17,10 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useLibraryStore } from "../../store/useLibraryStore";
 import type { MindMapNodeData, MindNodeKind } from "../../types";
-import { randomBookmarkColor, memoColors } from "../../theme";
 import BookmarkNode from "./BookmarkNode";
 import MemoNode from "./MemoNode";
 import { MindMapContext, type MindMapActions } from "./MindMapContext";
+import { getPreset, mindMapPresets, type LayoutDirection } from "../../lib/mindmapPresets";
 
 type FlowNode = Node<MindMapNodeData, MindNodeKind>;
 type Snapshot = { nodes: FlowNode[]; edges: Edge[] };
@@ -32,7 +32,12 @@ interface MindMapEditorProps {
   bookId: string;
 }
 
-function makeNode(kind: MindNodeKind, position: { x: number; y: number }): FlowNode {
+function makeNode(
+  kind: MindNodeKind,
+  position: { x: number; y: number },
+  bookmarkColor: string,
+  memoColor: string
+): FlowNode {
   if (kind === "memo") {
     return {
       id: crypto.randomUUID(),
@@ -40,21 +45,55 @@ function makeNode(kind: MindNodeKind, position: { x: number; y: number }): FlowN
       position,
       width: 200,
       height: 140,
-      data: { text: "", color: memoColors[0], memo: "", attachments: [], fontSize: 14 },
+      data: { text: "", color: memoColor, memo: "", attachments: [], fontSize: 14 },
     };
   }
   return {
     id: crypto.randomUUID(),
     type: "bookmark",
     position,
-    data: { text: "새 노드", color: randomBookmarkColor(), memo: "", attachments: [], level: "medium" },
+    data: { text: "새 노드", color: bookmarkColor, memo: "", attachments: [], level: "medium" },
+  };
+}
+
+function randomFrom(arr: string[]): string {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function getChildPosition(
+  direction: LayoutDirection,
+  parent: FlowNode,
+  childCount: number,
+  parentWidth: number,
+  parentHeight: number
+): { x: number; y: number } {
+  if (direction === "down") {
+    return {
+      x: parent.position.x + childCount * 220,
+      y: parent.position.y + parentHeight + 100,
+    };
+  }
+  if (direction === "radial") {
+    const angle = childCount * ((2 * Math.PI) / 6);
+    const radius = 220;
+    return {
+      x: parent.position.x + radius * Math.cos(angle),
+      y: parent.position.y + radius * Math.sin(angle),
+    };
+  }
+  return {
+    x: parent.position.x + parentWidth + 90,
+    y: parent.position.y + childCount * 100,
   };
 }
 
 function MindMapCanvas({ bookId }: MindMapEditorProps) {
   const mindMap = useLibraryStore((s) => s.getMindMap(bookId));
   const updateMindMap = useLibraryStore((s) => s.updateMindMap);
+  const bookmarkPalette = useLibraryStore((s) => s.bookmarkPalette);
+  const memoPalette = useLibraryStore((s) => s.memoPalette);
   const { screenToFlowPosition } = useReactFlow();
+  const preset = getPreset(mindMap?.layoutPreset);
 
   const initialNodes = useMemo<FlowNode[]>(
     () =>
@@ -164,25 +203,23 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     setNodes((nds) => nds.map((n) => (n.selected ? { ...n, selected: false } : n)));
   }
 
-  // 기능 6: 좌→우로 배치. 자식은 부모 오른쪽에 생성하고 연결.
+  // 선택된 프리셋의 배치 방향대로 부모와 연결된 자식 노드 생성
   function addChild(parentId: string, kind: MindNodeKind = "bookmark") {
     const parent = nodes.find((n) => n.id === parentId);
     if (!parent) return;
     pushHistory(snapshotNow());
     const childCount = edges.filter((e) => e.source === parentId).length;
     const parentWidth = parent.measured?.width ?? parent.width ?? 160;
-    const pos = {
-      x: parent.position.x + parentWidth + 90,
-      y: parent.position.y + childCount * 100,
-    };
-    const child = makeNode(kind, pos);
+    const parentHeight = parent.measured?.height ?? parent.height ?? 60;
+    const pos = getChildPosition(preset.direction, parent, childCount, parentWidth, parentHeight);
+    const child = makeNode(kind, pos, randomFrom(bookmarkPalette), randomFrom(memoPalette));
     setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), { ...child, selected: true }]);
     setEdges((eds) => addEdge({ id: crypto.randomUUID(), source: parentId, target: child.id }, eds));
   }
 
   function addStandalone(kind: MindNodeKind, position: { x: number; y: number }) {
     pushHistory(snapshotNow());
-    const node = makeNode(kind, position);
+    const node = makeNode(kind, position, randomFrom(bookmarkPalette), randomFrom(memoPalette));
     setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), { ...node, selected: true }]);
   }
 
@@ -226,13 +263,19 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     setEdges((eds) => eds.filter((e) => e.id !== edge.id));
   }
 
-  const actions: MindMapActions = { updateNodeData, addChild, deleteNode, clearSelection };
+  const actions: MindMapActions = {
+    updateNodeData,
+    addChild,
+    deleteNode,
+    clearSelection,
+    nodeShapeClass: preset.nodeShapeClass,
+  };
 
   return (
     <MindMapContext.Provider value={actions}>
       <div className="relative h-full w-full rounded-md border border-stone-300 bg-[#faf7f0]">
-        <div className="absolute left-4 top-4 z-10 flex flex-col gap-1">
-          <div className="flex gap-2">
+        <div className="absolute left-4 top-4 z-10 flex flex-col gap-1.5">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => handleAddClick("bookmark")}
               className="rounded bg-emerald-800 px-3 py-1.5 text-sm text-white shadow hover:bg-emerald-900"
@@ -245,16 +288,28 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
             >
               + 메모
             </button>
+            <select
+              value={preset.id}
+              onChange={(e) => updateMindMap(bookId, { layoutPreset: e.target.value })}
+              className="rounded border border-stone-300 bg-white/90 px-2 py-1.5 text-sm text-stone-700 shadow"
+              title="마인드맵 배치/모양 프리셋"
+            >
+              {mindMapPresets.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label} · {p.description}
+                </option>
+              ))}
+            </select>
           </div>
           <p className="text-xs text-stone-400">
-            노드 더블클릭/꾹 누르면 이름 수정 · 노드의 + 또는 오른쪽 점을 끌어 연결 · 선 클릭=삭제 · Ctrl+Z
+            노드 더블클릭/꾹 누르면 이름 수정 · 노드의 + 또는 오른쪽 점을 끌어 연결 · 선 클릭=삭제 · Delete=노드 삭제 · Ctrl+Z
           </p>
         </div>
         <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
-          defaultEdgeOptions={{ style: { strokeWidth: 2.5, stroke: "#57534e" } }}
+          defaultEdgeOptions={{ type: preset.edgeType, style: { strokeWidth: 2.5, stroke: "#57534e" } }}
           onNodesChange={onNodesChange}
           onEdgesChange={(changes) => {
             pushHistory(snapshotNow());

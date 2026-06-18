@@ -2,22 +2,35 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Book, MindMap, MindMapEdge, MindMapNode, Review } from "../types";
 import { seedBooks, seedMindMaps, seedReviews } from "../data/seed";
-import { bookmarkColors } from "../theme";
+import {
+  bookmarkColors,
+  memoColors,
+  shuffleBookmarkPalette,
+  shuffleMemoPalette,
+} from "../theme";
 
 interface LibraryState {
   books: Book[];
   mindMaps: MindMap[];
   reviews: Review[];
+  bookmarkPalette: string[];
+  memoPalette: string[];
 
   addBook: (book: Omit<Book, "id" | "createdAt">) => Book;
   updateBook: (id: string, patch: Partial<Book>) => void;
   removeBook: (id: string) => void;
 
   getMindMap: (bookId: string) => MindMap | undefined;
-  updateMindMap: (bookId: string, patch: { nodes?: MindMapNode[]; edges?: MindMapEdge[] }) => void;
+  updateMindMap: (
+    bookId: string,
+    patch: { nodes?: MindMapNode[]; edges?: MindMapEdge[]; layoutPreset?: string }
+  ) => void;
 
   getReview: (bookId: string) => Review | undefined;
   upsertReview: (bookId: string, patch: Partial<Omit<Review, "id" | "bookId">>) => void;
+
+  reshuffleBookmarkPalette: () => void;
+  reshuffleMemoPalette: () => void;
 }
 
 export const useLibraryStore = create<LibraryState>()(
@@ -26,6 +39,8 @@ export const useLibraryStore = create<LibraryState>()(
       books: seedBooks,
       mindMaps: seedMindMaps,
       reviews: seedReviews,
+      bookmarkPalette: [...bookmarkColors],
+      memoPalette: [...memoColors],
 
       addBook: (book) => {
         const newBook: Book = {
@@ -40,7 +55,7 @@ export const useLibraryStore = create<LibraryState>()(
           position: { x: 0, y: 0 },
           data: {
             text: newBook.title,
-            color: bookmarkColors[0],
+            color: get().bookmarkPalette[0],
             memo: "",
             attachments: [],
             level: "title",
@@ -109,6 +124,9 @@ export const useLibraryStore = create<LibraryState>()(
           };
           return { reviews: [...state.reviews, newReview] };
         }),
+
+      reshuffleBookmarkPalette: () => set({ bookmarkPalette: shuffleBookmarkPalette() }),
+      reshuffleMemoPalette: () => set({ memoPalette: shuffleMemoPalette() }),
     }),
     { name: "chaekgalpi-library" }
   )

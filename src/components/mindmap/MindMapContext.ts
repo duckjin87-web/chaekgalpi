@@ -6,6 +6,7 @@ export interface MindMapActions {
   addChild: (parentId: string, kind?: MindNodeKind) => void;
   deleteNode: (id: string) => void;
   clearSelection: () => void;
+  nodeShapeClass: string;
 }
 
 export const MindMapContext = createContext<MindMapActions | null>(null);

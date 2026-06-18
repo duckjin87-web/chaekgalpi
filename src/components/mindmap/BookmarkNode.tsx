@@ -13,7 +13,7 @@ const handleClass =
 export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkFlowNode>) {
   const level = data.level ?? "medium";
   const style = nodeLevelStyle[level];
-  const { updateNodeData, addChild } = useMindMapActions();
+  const { updateNodeData, addChild, deleteNode, nodeShapeClass } = useMindMapActions();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(data.text);
   const pressTimer = useRef<number | null>(null);
@@ -45,8 +45,8 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
 
   return (
     <div
-      className={`relative rounded-md border-2 text-white shadow-md ${
-        selected ? "border-stone-800" : "border-transparent"
+      className={`relative border-2 text-stone-800 shadow-md transition-shadow ${nodeShapeClass} ${
+        selected ? "border-stone-800 shadow-lg" : "border-transparent"
       }`}
       style={{
         backgroundColor: data.color,
@@ -93,7 +93,7 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
       )}
       <Handle type="source" position={Position.Right} className={handleClass} />
 
-      {/* 기능 5: 노드 자체의 + 버튼 → 연결된 자식 노드 생성 */}
+      {/* + 버튼 → 연결된 자식 노드 생성 */}
       <button
         className="nodrag absolute -bottom-2.5 -right-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-emerald-700 text-base leading-none text-white shadow hover:bg-emerald-500"
         onClick={(e) => {
@@ -104,6 +104,20 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
       >
         +
       </button>
+
+      {/* 선택 시 휴지통 버튼으로 노드 삭제 */}
+      {selected && (
+        <button
+          className="nodrag absolute -top-2.5 -right-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-red-600 text-xs leading-none text-white shadow hover:bg-red-500"
+          onClick={(e) => {
+            e.stopPropagation();
+            deleteNode(id);
+          }}
+          title="노드 삭제"
+        >
+          🗑
+        </button>
+      )}
 
       {selected && <InlineNodeEditor id={id} data={data} />}
     </div>

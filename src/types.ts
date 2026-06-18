@@ -57,6 +57,8 @@ export interface MindMap {
   nodes: MindMapNode[];
   edges: MindMapEdge[];
   updatedAt: string;
+  /** 마인드맵 배치/노드 모양 프리셋 id */
+  layoutPreset?: string;
 }
 
 export interface Quote {

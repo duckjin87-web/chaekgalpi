@@ -13,7 +13,7 @@ const handleClass =
 export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkFlowNode>) {
   const level = data.level ?? "medium";
   const style = nodeLevelStyle[level];
-  const { updateNodeData, addChild, deleteNode, nodeShapeClass } = useMindMapActions();
+  const { updateNodeData, addChild, nodeShapeClass } = useMindMapActions();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(data.text);
   const pressTimer = useRef<number | null>(null);
@@ -45,14 +45,17 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
 
   return (
     <div
-      className={`relative border-2 text-stone-800 shadow-md transition-shadow ${nodeShapeClass} ${
-        selected ? "border-stone-800 shadow-lg" : "border-transparent"
+      className={`relative text-stone-800 shadow-md transition-shadow ${nodeShapeClass} ${
+        selected ? "shadow-lg" : ""
       }`}
       style={{
         backgroundColor: data.color,
         minWidth: style.minWidth,
         maxWidth: 260,
         padding: style.padding,
+        borderWidth: style.borderWidth,
+        borderStyle: "solid",
+        borderColor: selected ? "#292524" : "transparent",
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();
@@ -104,20 +107,6 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
       >
         +
       </button>
-
-      {/* 선택 시 휴지통 버튼으로 노드 삭제 */}
-      {selected && (
-        <button
-          className="nodrag absolute -top-2.5 -right-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-red-600 text-xs leading-none text-white shadow hover:bg-red-500"
-          onClick={(e) => {
-            e.stopPropagation();
-            deleteNode(id);
-          }}
-          title="노드 삭제"
-        >
-          🗑
-        </button>
-      )}
 
       {selected && <InlineNodeEditor id={id} data={data} />}
     </div>

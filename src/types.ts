@@ -33,6 +33,8 @@ export interface MindMapNodeData extends Record<string, unknown> {
   level?: NodeLevel;
   /** 포스트잇 메모 폰트 크기(px) */
   fontSize?: number;
+  /** 포스트잇 메모 투명도 (0~1) */
+  opacity?: number;
 }
 
 export interface MindMapNode {

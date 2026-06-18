@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -19,6 +19,7 @@ import { useLibraryStore } from "../../store/useLibraryStore";
 import type { MindMapNodeData, MindNodeKind } from "../../types";
 import BookmarkNode from "./BookmarkNode";
 import MemoNode from "./MemoNode";
+import TapeEdge from "./TapeEdge";
 import { MindMapContext, type MindMapActions } from "./MindMapContext";
 import { getPreset, mindMapPresets, type LayoutDirection } from "../../lib/mindmapPresets";
 
@@ -26,6 +27,7 @@ type FlowNode = Node<MindMapNodeData, MindNodeKind>;
 type Snapshot = { nodes: FlowNode[]; edges: Edge[] };
 
 const nodeTypes = { bookmark: BookmarkNode, memo: MemoNode };
+const edgeTypes = { tape: TapeEdge };
 const HISTORY_LIMIT = 50;
 
 interface MindMapEditorProps {
@@ -45,7 +47,7 @@ function makeNode(
       position,
       width: 200,
       height: 140,
-      data: { text: "", color: memoColor, memo: "", attachments: [], fontSize: 14 },
+      data: { text: "", color: memoColor, memo: "", attachments: [], fontSize: 14, opacity: 1 },
     };
   }
   return {
@@ -87,6 +89,25 @@ function getChildPosition(
   };
 }
 
+// 엣지 목록에서 source→target 관계를 따라 특정 노드의 모든 하위(자손) id 수집
+function getDescendantIds(rootId: string, edges: Edge[]): string[] {
+  const childrenByParent = new Map<string, string[]>();
+  edges.forEach((e) => {
+    childrenByParent.set(e.source, [...(childrenByParent.get(e.source) ?? []), e.target]);
+  });
+  const result: string[] = [];
+  const queue = [...(childrenByParent.get(rootId) ?? [])];
+  const seen = new Set<string>();
+  while (queue.length) {
+    const next = queue.shift()!;
+    if (seen.has(next)) continue;
+    seen.add(next);
+    result.push(next);
+    queue.push(...(childrenByParent.get(next) ?? []));
+  }
+  return result;
+}
+
 function MindMapCanvas({ bookId }: MindMapEditorProps) {
   const mindMap = useLibraryStore((s) => s.getMindMap(bookId));
   const updateMindMap = useLibraryStore((s) => s.updateMindMap);
@@ -94,6 +115,12 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   const memoPalette = useLibraryStore((s) => s.memoPalette);
   const { screenToFlowPosition } = useReactFlow();
   const preset = getPreset(mindMap?.layoutPreset);
+
+  const nodeKindLookup = useMemo(() => {
+    const map = new Map<string, MindNodeKind>();
+    (mindMap?.nodes ?? []).forEach((n) => map.set(n.id, (n.type ?? "bookmark") as MindNodeKind));
+    return map;
+  }, [mindMap?.id]);
 
   const initialNodes = useMemo<FlowNode[]>(
     () =>
@@ -108,7 +135,16 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     [mindMap?.id]
   );
   const initialEdges = useMemo<Edge[]>(
-    () => (mindMap?.edges ?? []).map((e) => ({ id: e.id, source: e.source, target: e.target })),
+    () =>
+      (mindMap?.edges ?? []).map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        type:
+          nodeKindLookup.get(e.source) === "memo" || nodeKindLookup.get(e.target) === "memo"
+            ? "tape"
+            : undefined,
+      })),
     [mindMap?.id]
   );
 
@@ -120,6 +156,13 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   const dragSnapshotRef = useRef<Snapshot | null>(null);
   const pendingEditSnapshotRef = useRef<Snapshot | null>(null);
   const pendingEditTimerRef = useRef<number | null>(null);
+
+  // 드래그 시 함께 움직일 하위 노드 추적
+  const dragDescendantsRef = useRef<string[]>([]);
+  const dragInitialPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const [isDraggingNode, setIsDraggingNode] = useState(false);
+  const [overTrash, setOverTrash] = useState(false);
+  const trashRef = useRef<HTMLDivElement>(null);
 
   function pushHistory(snapshot: Snapshot) {
     historyRef.current.push(snapshot);
@@ -203,6 +246,14 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     setNodes((nds) => nds.map((n) => (n.selected ? { ...n, selected: false } : n)));
   }
 
+  function nodeKindOf(id: string): MindNodeKind {
+    return nodes.find((n) => n.id === id)?.type ?? "bookmark";
+  }
+
+  function edgeTypeForPair(aKind: MindNodeKind, bId: string): "tape" | undefined {
+    return aKind === "memo" || nodeKindOf(bId) === "memo" ? "tape" : undefined;
+  }
+
   // 선택된 프리셋의 배치 방향대로 부모와 연결된 자식 노드 생성
   function addChild(parentId: string, kind: MindNodeKind = "bookmark") {
     const parent = nodes.find((n) => n.id === parentId);
@@ -214,7 +265,12 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     const pos = getChildPosition(preset.direction, parent, childCount, parentWidth, parentHeight);
     const child = makeNode(kind, pos, randomFrom(bookmarkPalette), randomFrom(memoPalette));
     setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), { ...child, selected: true }]);
-    setEdges((eds) => addEdge({ id: crypto.randomUUID(), source: parentId, target: child.id }, eds));
+    setEdges((eds) =>
+      addEdge(
+        { id: crypto.randomUUID(), source: parentId, target: child.id, type: edgeTypeForPair(kind, parentId) },
+        eds
+      )
+    );
   }
 
   function addStandalone(kind: MindNodeKind, position: { x: number; y: number }) {
@@ -257,16 +313,83 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     setEdges((eds) => eds.filter((e) => e.source !== id && e.target !== id));
   }
 
+  function deleteEdge(id: string) {
+    pushHistory(snapshotNow());
+    setEdges((eds) => eds.filter((e) => e.id !== id));
+  }
+
   // 기능 2: 연결선 클릭 시 삭제
   function handleEdgeClick(_: MouseEvent, edge: Edge) {
     pushHistory(snapshotNow());
     setEdges((eds) => eds.filter((e) => e.id !== edge.id));
   }
 
+  function pointerOverTrash(clientX: number, clientY: number): boolean {
+    const rect = trashRef.current?.getBoundingClientRect();
+    if (!rect) return false;
+    return (
+      clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom
+    );
+  }
+
+  function clientPointFromEvent(event: globalThis.MouseEvent | TouchEvent): { x: number; y: number } {
+    if ("touches" in event) {
+      const touch = event.touches[0] ?? event.changedTouches[0];
+      return { x: touch?.clientX ?? 0, y: touch?.clientY ?? 0 };
+    }
+    return { x: event.clientX, y: event.clientY };
+  }
+
+  // 기능 1: 노드를 꾹 눌러 드래그 시작 → 하단 쓰레기통 표시 + 하위 노드 동반 이동
+  function handleNodeDragStart(_event: globalThis.MouseEvent | TouchEvent, node: FlowNode) {
+    dragDescendantsRef.current = getDescendantIds(node.id, edges);
+    const positions = new Map<string, { x: number; y: number }>();
+    positions.set(node.id, node.position);
+    dragDescendantsRef.current.forEach((id) => {
+      const n = nodes.find((nd) => nd.id === id);
+      if (n) positions.set(id, n.position);
+    });
+    dragInitialPositionsRef.current = positions;
+    setIsDraggingNode(true);
+  }
+
+  function handleNodeDrag(event: globalThis.MouseEvent | TouchEvent, node: FlowNode) {
+    const start = dragInitialPositionsRef.current.get(node.id);
+    if (start && dragDescendantsRef.current.length > 0) {
+      const delta = { x: node.position.x - start.x, y: node.position.y - start.y };
+      setNodes((nds) =>
+        nds.map((n) => {
+          if (!dragDescendantsRef.current.includes(n.id)) return n;
+          const initial = dragInitialPositionsRef.current.get(n.id);
+          if (!initial) return n;
+          return { ...n, position: { x: initial.x + delta.x, y: initial.y + delta.y } };
+        })
+      );
+    }
+    const point = clientPointFromEvent(event);
+    setOverTrash(pointerOverTrash(point.x, point.y));
+  }
+
+  function handleNodeDragStop(event: globalThis.MouseEvent | TouchEvent, node: FlowNode) {
+    const point = clientPointFromEvent(event);
+    const droppedOnTrash = pointerOverTrash(point.x, point.y);
+    setIsDraggingNode(false);
+    setOverTrash(false);
+    dragDescendantsRef.current = [];
+    dragInitialPositionsRef.current = new Map();
+    if (droppedOnTrash) {
+      if (dragSnapshotRef.current) {
+        dragSnapshotRef.current = null;
+      }
+      deleteNode(node.id);
+    }
+  }
+
   const actions: MindMapActions = {
     updateNodeData,
     addChild,
     deleteNode,
+    deleteEdge,
     clearSelection,
     nodeShapeClass: preset.nodeShapeClass,
   };
@@ -302,13 +425,14 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
             </select>
           </div>
           <p className="text-xs text-stone-400">
-            노드 더블클릭/꾹 누르면 이름 수정 · 노드의 + 또는 오른쪽 점을 끌어 연결 · 선 클릭=삭제 · Delete=노드 삭제 · Ctrl+Z
+            노드 더블클릭/꾹 누르면 이름 수정 · 노드의 + 또는 오른쪽 점을 끌어 연결 · 노드를 꾹 눌러 끌어 하단 쓰레기통에 놓으면 삭제 · Delete=노드 삭제 · Ctrl+Z
           </p>
         </div>
         <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           defaultEdgeOptions={{ type: preset.edgeType, style: { strokeWidth: 2.5, stroke: "#57534e" } }}
           onNodesChange={onNodesChange}
           onEdgesChange={(changes) => {
@@ -317,9 +441,21 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
           }}
           onConnect={(connection: Connection) => {
             pushHistory(snapshotNow());
-            setEdges((eds) => addEdge({ ...connection, id: crypto.randomUUID() }, eds));
+            setEdges((eds) =>
+              addEdge(
+                {
+                  ...connection,
+                  id: crypto.randomUUID(),
+                  type: edgeTypeForPair(nodeKindOf(connection.source), connection.target),
+                },
+                eds
+              )
+            );
           }}
           onNodeClick={(_, node) => selectNode(node.id)}
+          onNodeDragStart={handleNodeDragStart}
+          onNodeDrag={handleNodeDrag}
+          onNodeDragStop={handleNodeDragStop}
           onEdgeClick={handleEdgeClick}
           onDoubleClick={handlePaneDoubleClick}
           zoomOnDoubleClick={false}
@@ -329,6 +465,17 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
           <Controls />
           <MiniMap />
         </ReactFlow>
+
+        {isDraggingNode && (
+          <div
+            ref={trashRef}
+            className={`pointer-events-none absolute bottom-6 left-1/2 z-20 flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full border-2 text-2xl shadow-xl transition-colors ${
+              overTrash ? "scale-110 border-red-600 bg-red-100" : "border-stone-400 bg-white/90"
+            }`}
+          >
+            🗑
+          </div>
+        )}
       </div>
     </MindMapContext.Provider>
   );

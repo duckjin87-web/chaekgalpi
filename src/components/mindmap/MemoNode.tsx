@@ -11,7 +11,8 @@ const handleClass =
 
 export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>) {
   const fontSize = data.fontSize ?? 14;
-  const { updateNodeData, addChild, deleteNode } = useMindMapActions();
+  const opacity = data.opacity ?? 1;
+  const { updateNodeData, addChild } = useMindMapActions();
   const palette = useLibraryStore((s) => s.memoPalette);
   const reshufflePalette = useLibraryStore((s) => s.reshuffleMemoPalette);
   const [editing, setEditing] = useState(false);
@@ -54,10 +55,59 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
       <Handle type="target" position={Position.Left} className={handleClass} />
       <Handle type="source" position={Position.Right} className={handleClass} />
 
+      {selected && (
+        <div
+          className="nodrag nopan nowheel absolute -top-12 left-0 z-20 flex items-center gap-1.5 rounded-full border border-white/40 bg-white/80 px-2 py-1 shadow-xl backdrop-blur-md"
+          onClick={(e) => e.stopPropagation()}
+          onDoubleClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {palette.map((color) => (
+            <button
+              key={color}
+              onClick={() => updateNodeData(id, { color })}
+              className={`h-4 w-4 rounded-full ring-2 transition-transform hover:scale-110 ${
+                data.color === color ? "ring-stone-700" : "ring-transparent"
+              }`}
+              style={{ backgroundColor: color }}
+              aria-label={color}
+            />
+          ))}
+          <button
+            onClick={reshufflePalette}
+            className="flex h-4 w-4 items-center justify-center rounded-full bg-white/70 text-[10px] text-stone-600 transition-transform hover:rotate-180"
+            title="기본 색상 5가지 랜덤 재배치"
+          >
+            ↻
+          </button>
+          <div className="h-4 w-px bg-stone-300/60" />
+          <input
+            type="range"
+            min={10}
+            max={32}
+            value={fontSize}
+            onChange={(e) => updateNodeData(id, { fontSize: Number(e.target.value) })}
+            className="h-3 w-14"
+            title="글자 크기"
+          />
+          <input
+            type="range"
+            min={0.2}
+            max={1}
+            step={0.05}
+            value={opacity}
+            onChange={(e) => updateNodeData(id, { opacity: Number(e.target.value) })}
+            className="h-3 w-14"
+            title="투명도"
+          />
+        </div>
+      )}
+
       <div
         className="h-full w-full overflow-hidden rounded-sm p-3 text-stone-800"
         style={{
           backgroundColor: data.color,
+          opacity,
           boxShadow: "2px 3px 6px rgba(0,0,0,0.18)",
           outline: selected ? "2px solid #57534e" : "none",
         }}
@@ -70,42 +120,6 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
         onPointerMove={cancelPress}
         onPointerLeave={cancelPress}
       >
-        {selected && (
-          <div
-            className="nodrag nopan mb-2 flex items-center gap-1.5 rounded-full bg-white/50 px-2 py-1 backdrop-blur-sm"
-            onClick={(e) => e.stopPropagation()}
-            onDoubleClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            {palette.map((color) => (
-              <button
-                key={color}
-                onClick={() => updateNodeData(id, { color })}
-                className={`h-4 w-4 rounded-full ring-2 transition-transform hover:scale-110 ${
-                  data.color === color ? "ring-stone-700" : "ring-transparent"
-                }`}
-                style={{ backgroundColor: color }}
-                aria-label={color}
-              />
-            ))}
-            <button
-              onClick={reshufflePalette}
-              className="flex h-4 w-4 items-center justify-center rounded-full bg-white/70 text-[10px] text-stone-600 transition-transform hover:rotate-180"
-              title="기본 색상 5가지 랜덤 재배치"
-            >
-              ↻
-            </button>
-            <input
-              type="range"
-              min={10}
-              max={32}
-              value={fontSize}
-              onChange={(e) => updateNodeData(id, { fontSize: Number(e.target.value) })}
-              className="ml-1 h-3 w-16"
-              title="글자 크기"
-            />
-          </div>
-        )}
         {editing ? (
           <textarea
             ref={textRef}
@@ -134,20 +148,6 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
       >
         +
       </button>
-
-      {/* 선택 시 휴지통 버튼으로 메모 삭제 */}
-      {selected && (
-        <button
-          className="nodrag absolute -top-2.5 -right-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-red-600 text-xs leading-none text-white shadow hover:bg-red-500"
-          onClick={(e) => {
-            e.stopPropagation();
-            deleteNode(id);
-          }}
-          title="메모 삭제"
-        >
-          🗑
-        </button>
-      )}
     </div>
   );
 }

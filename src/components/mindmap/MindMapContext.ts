@@ -5,6 +5,7 @@ export interface MindMapActions {
   updateNodeData: (id: string, patch: Partial<MindMapNodeData>) => void;
   addChild: (parentId: string, kind?: MindNodeKind) => void;
   deleteNode: (id: string) => void;
+  deleteEdge: (id: string) => void;
   clearSelection: () => void;
   nodeShapeClass: string;
 }

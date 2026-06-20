@@ -16,7 +16,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useLibraryStore } from "../../store/useLibraryStore";
-import type { MindMapNodeData, MindNodeKind } from "../../types";
+import type { MindMapNodeData, MindNodeKind, NodeLevel } from "../../types";
 import BookmarkNode from "./BookmarkNode";
 import MemoNode from "./MemoNode";
 import TapeEdge from "./TapeEdge";
@@ -38,7 +38,8 @@ function makeNode(
   kind: MindNodeKind,
   position: { x: number; y: number },
   bookmarkColor: string,
-  memoColor: string
+  memoColor: string,
+  level: NodeLevel = "medium"
 ): FlowNode {
   if (kind === "memo") {
     return {
@@ -54,7 +55,7 @@ function makeNode(
     id: crypto.randomUUID(),
     type: "bookmark",
     position,
-    data: { text: "새 노드", color: bookmarkColor, memo: "", attachments: [], level: "medium" },
+    data: { text: "새 노드", color: bookmarkColor, memo: "", attachments: [], level },
   };
 }
 
@@ -164,6 +165,9 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   const [overTrash, setOverTrash] = useState(false);
   const trashRef = useRef<HTMLDivElement>(null);
 
+  // 마지막으로 사용한 노드 레벨(제목/대/중/소)을 기억해 다음 노드 생성 시 그대로 유지
+  const lastLevelRef = useRef<NodeLevel>("medium");
+
   function pushHistory(snapshot: Snapshot) {
     historyRef.current.push(snapshot);
     if (historyRef.current.length > HISTORY_LIMIT) historyRef.current.shift();
@@ -263,7 +267,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     const parentWidth = parent.measured?.width ?? parent.width ?? 160;
     const parentHeight = parent.measured?.height ?? parent.height ?? 60;
     const pos = getChildPosition(preset.direction, parent, childCount, parentWidth, parentHeight);
-    const child = makeNode(kind, pos, randomFrom(bookmarkPalette), randomFrom(memoPalette));
+    const child = makeNode(kind, pos, randomFrom(bookmarkPalette), randomFrom(memoPalette), lastLevelRef.current);
     setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), { ...child, selected: true }]);
     setEdges((eds) =>
       addEdge(
@@ -275,7 +279,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
 
   function addStandalone(kind: MindNodeKind, position: { x: number; y: number }) {
     pushHistory(snapshotNow());
-    const node = makeNode(kind, position, randomFrom(bookmarkPalette), randomFrom(memoPalette));
+    const node = makeNode(kind, position, randomFrom(bookmarkPalette), randomFrom(memoPalette), lastLevelRef.current);
     setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), { ...node, selected: true }]);
   }
 
@@ -296,6 +300,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   }
 
   function updateNodeData(id: string, patch: Partial<MindMapNodeData>) {
+    if (patch.level) lastLevelRef.current = patch.level;
     if (!pendingEditSnapshotRef.current) pendingEditSnapshotRef.current = snapshotNow();
     if (pendingEditTimerRef.current) window.clearTimeout(pendingEditTimerRef.current);
     pendingEditTimerRef.current = window.setTimeout(() => {
@@ -466,11 +471,21 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
           <MiniMap />
         </ReactFlow>
 
+        {/* 좌측 하단: 실행취소 물리 버튼 (Ctrl+Z 보조) */}
+        <button
+          onClick={undo}
+          className="nodrag absolute bottom-6 left-6 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-stone-400 bg-white text-xl text-stone-700 shadow-lg opacity-80 transition-opacity hover:opacity-100"
+          title="실행취소 (Ctrl+Z)"
+        >
+          ↩︎
+        </button>
+
+        {/* 좌측 하단: 노드/메모를 드래그해서 버리는 쓰레기통 (드래그 중에만 표시) */}
         {isDraggingNode && (
           <div
             ref={trashRef}
-            className={`pointer-events-none absolute bottom-6 left-1/2 z-20 flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full border-2 text-2xl shadow-xl transition-colors ${
-              overTrash ? "scale-110 border-red-600 bg-red-100" : "border-stone-400 bg-white/90"
+            className={`pointer-events-none absolute bottom-24 left-6 z-20 flex h-16 w-16 items-center justify-center rounded-full border-2 text-2xl shadow-xl transition-all ${
+              overTrash ? "scale-110 border-red-600 bg-red-100 opacity-100" : "border-stone-400 bg-white opacity-80"
             }`}
           >
             🗑

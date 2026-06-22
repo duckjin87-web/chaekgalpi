@@ -154,6 +154,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   const skipFirstSave = useRef(true);
 
   const historyRef = useRef<Snapshot[]>([]);
+  const redoRef = useRef<Snapshot[]>([]);
   const dragSnapshotRef = useRef<Snapshot | null>(null);
   const pendingEditSnapshotRef = useRef<Snapshot | null>(null);
   const pendingEditTimerRef = useRef<number | null>(null);
@@ -172,6 +173,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   function pushHistory(snapshot: Snapshot) {
     historyRef.current.push(snapshot);
     if (historyRef.current.length > HISTORY_LIMIT) historyRef.current.shift();
+    redoRef.current = [];
   }
 
   function snapshotNow(): Snapshot {
@@ -181,8 +183,18 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   function undo() {
     const previous = historyRef.current.pop();
     if (!previous) return;
+    redoRef.current.push(snapshotNow());
+    if (redoRef.current.length > HISTORY_LIMIT) redoRef.current.shift();
     setNodes(previous.nodes);
     setEdges(previous.edges);
+  }
+
+  function redo() {
+    const next = redoRef.current.pop();
+    if (!next) return;
+    historyRef.current.push(snapshotNow());
+    setNodes(next.nodes);
+    setEdges(next.edges);
   }
 
   useEffect(() => {
@@ -192,7 +204,13 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
       if (typing) return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
-        undo();
+        if (e.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        redo();
         return;
       }
       if (e.key === "Delete" || e.key === "Backspace") {
@@ -439,7 +457,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
             </select>
           </div>
           <p className="text-xs text-stone-400">
-            노드 더블클릭/꾹 누르면 이름 수정 · 노드의 + 또는 오른쪽 점을 끌어 연결 · 노드를 꾹 눌러 끌어 하단 쓰레기통에 놓으면 삭제 · Delete=노드 삭제 · Ctrl+Z
+            노드 더블클릭/꾹 누르면 이름 수정 · 노드의 + 또는 오른쪽 점을 끌어 연결 · 노드를 꾹 눌러 끌어 쓰레기통에 놓으면 삭제 · Delete=노드 삭제 · Ctrl+Z=실행취소 · Ctrl+Shift+Z=다시실행
           </p>
         </div>
         <ReactFlow
@@ -480,13 +498,20 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
           <MiniMap />
         </ReactFlow>
 
-        {/* 좌측 하단: 실행취소 물리 버튼 (Ctrl+Z 보조) */}
+        {/* 좌측 하단: 실행취소/다시실행 물리 버튼 (Ctrl+Z / Ctrl+Shift+Z 보조) */}
         <button
           onClick={undo}
           className="nodrag absolute bottom-6 left-6 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-stone-400 bg-white text-xl text-stone-700 shadow-lg opacity-80 transition-opacity hover:opacity-100"
           title="실행취소 (Ctrl+Z)"
         >
           ↩︎
+        </button>
+        <button
+          onClick={redo}
+          className="nodrag absolute bottom-6 left-20 z-20 flex h-12 w-12 items-center justify-center rounded-full border border-stone-400 bg-white text-xl text-stone-700 shadow-lg opacity-80 transition-opacity hover:opacity-100"
+          title="다시실행 (Ctrl+Shift+Z)"
+        >
+          ↪︎
         </button>
 
         {/* 꾹 누른 노드 근처에 뜨는 쓰레기통: 그쪽으로 끌어다 놓으면 삭제 */}

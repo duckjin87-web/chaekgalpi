@@ -15,7 +15,7 @@ export default function InlineNodeEditor({ id, data }: InlineNodeEditorProps) {
 
   return (
     <div
-      className="nodrag nopan nowheel absolute left-0 top-full z-20 mt-2 flex items-center gap-2 rounded-2xl border border-white/40 bg-white/70 px-3 py-2 shadow-xl backdrop-blur-md"
+      className="nodrag nopan nowheel absolute bottom-full left-0 z-20 mb-2 flex items-center gap-2 rounded-2xl border border-white/40 bg-white/70 px-3 py-2 shadow-xl backdrop-blur-md"
       onClick={(e) => e.stopPropagation()}
       onDoubleClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}

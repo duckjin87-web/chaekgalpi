@@ -163,6 +163,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   const dragInitialPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const [isDraggingNode, setIsDraggingNode] = useState(false);
   const [overTrash, setOverTrash] = useState(false);
+  const [trashPosition, setTrashPosition] = useState({ x: 0, y: 0 });
   const trashRef = useRef<HTMLDivElement>(null);
 
   // 마지막으로 사용한 노드 레벨(제목/대/중/소)을 기억해 다음 노드 생성 시 그대로 유지
@@ -345,8 +346,8 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     return { x: event.clientX, y: event.clientY };
   }
 
-  // 기능 1: 노드를 꾹 눌러 드래그 시작 → 하단 쓰레기통 표시 + 하위 노드 동반 이동
-  function handleNodeDragStart(_event: globalThis.MouseEvent | TouchEvent, node: FlowNode) {
+  // 기능 1: 노드를 꾹 눌러 드래그 시작 → 누른 노드 근처에 쓰레기통 표시 + 하위 노드 동반 이동
+  function handleNodeDragStart(event: globalThis.MouseEvent | TouchEvent, node: FlowNode) {
     dragDescendantsRef.current = getDescendantIds(node.id, edges);
     const positions = new Map<string, { x: number; y: number }>();
     positions.set(node.id, node.position);
@@ -355,6 +356,14 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
       if (n) positions.set(id, n.position);
     });
     dragInitialPositionsRef.current = positions;
+
+    const point = clientPointFromEvent(event);
+    const offset = 80;
+    const belowFits = point.y + offset + 40 <= window.innerHeight;
+    setTrashPosition({
+      x: Math.min(Math.max(point.x, 40), window.innerWidth - 40),
+      y: belowFits ? point.y + offset : point.y - offset,
+    });
     setIsDraggingNode(true);
   }
 
@@ -480,11 +489,17 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
           ↩︎
         </button>
 
-        {/* 좌측 하단: 노드/메모를 드래그해서 버리는 쓰레기통 (드래그 중에만 표시) */}
+        {/* 꾹 누른 노드 근처에 뜨는 쓰레기통: 그쪽으로 끌어다 놓으면 삭제 */}
         {isDraggingNode && (
           <div
             ref={trashRef}
-            className={`pointer-events-none absolute bottom-24 left-6 z-20 flex h-16 w-16 items-center justify-center rounded-full border-2 text-2xl shadow-xl transition-all ${
+            style={{
+              position: "fixed",
+              left: trashPosition.x,
+              top: trashPosition.y,
+              transform: "translate(-50%, -50%)",
+            }}
+            className={`pointer-events-none z-30 flex h-16 w-16 items-center justify-center rounded-full border-2 text-2xl shadow-xl transition-all ${
               overTrash ? "scale-110 border-red-600 bg-red-100 opacity-100" : "border-stone-400 bg-white opacity-80"
             }`}
           >

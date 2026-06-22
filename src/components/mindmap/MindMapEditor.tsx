@@ -359,10 +359,10 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
 
     const point = clientPointFromEvent(event);
     const offset = 80;
-    const belowFits = point.y + offset + 40 <= window.innerHeight;
+    const aboveFits = point.y - offset - 40 >= 0;
     setTrashPosition({
       x: Math.min(Math.max(point.x, 40), window.innerWidth - 40),
-      y: belowFits ? point.y + offset : point.y - offset,
+      y: aboveFits ? point.y - offset : point.y + offset,
     });
     setIsDraggingNode(true);
   }
@@ -500,7 +500,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
               transform: "translate(-50%, -50%)",
             }}
             className={`pointer-events-none z-30 flex h-16 w-16 items-center justify-center rounded-full border-2 text-2xl shadow-xl transition-all ${
-              overTrash ? "scale-110 border-red-600 bg-red-100 opacity-100" : "border-stone-400 bg-white opacity-80"
+              overTrash ? "scale-110 border-red-600 bg-red-100 opacity-100" : "border-stone-400 bg-white opacity-90"
             }`}
           >
             🗑

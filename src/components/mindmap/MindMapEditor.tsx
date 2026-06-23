@@ -22,6 +22,7 @@ import MemoNode from "./MemoNode";
 import TapeEdge from "./TapeEdge";
 import { MindMapContext, type MindMapActions } from "./MindMapContext";
 import { getPreset, mindMapPresets, type LayoutDirection } from "../../lib/mindmapPresets";
+import { nodeLevelOrder } from "../../theme";
 
 type FlowNode = Node<MindMapNodeData, MindNodeKind>;
 type Snapshot = { nodes: FlowNode[]; edges: Edge[] };
@@ -63,21 +64,36 @@ function randomFrom(arr: string[]): string {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// 같은 부모의 자식들 중 유형(제목/대/중/소/메모)별로 묶어 정렬된 자리에 배치하기 위한 블록 크기
+const TYPE_BLOCK_SIZE = 10;
+
+// 노드의 유형(레벨 또는 메모)에 따른 정렬 순서 인덱스
+function typeBucketIndex(node: FlowNode): number {
+  if (node.type === "memo") return nodeLevelOrder.length;
+  return nodeLevelOrder.indexOf(node.data.level ?? "medium");
+}
+
+// 새로 추가될 자식의 유형과 부모의 기존 자식들을 기준으로, 유형별로 묶인 자리(slot) 인덱스 계산
+function getChildSlotIndex(children: FlowNode[], newChildBucket: number): number {
+  const sameTypeCount = children.filter((c) => typeBucketIndex(c) === newChildBucket).length;
+  return newChildBucket * TYPE_BLOCK_SIZE + sameTypeCount;
+}
+
 function getChildPosition(
   direction: LayoutDirection,
   parent: FlowNode,
-  childCount: number,
+  slotIndex: number,
   parentWidth: number,
   parentHeight: number
 ): { x: number; y: number } {
   if (direction === "down") {
     return {
-      x: parent.position.x + childCount * 220,
+      x: parent.position.x + slotIndex * 220,
       y: parent.position.y + parentHeight + 100,
     };
   }
   if (direction === "radial") {
-    const angle = childCount * ((2 * Math.PI) / 6);
+    const angle = slotIndex * ((2 * Math.PI) / 6);
     const radius = 220;
     return {
       x: parent.position.x + radius * Math.cos(angle),
@@ -86,7 +102,7 @@ function getChildPosition(
   }
   return {
     x: parent.position.x + parentWidth + 90,
-    y: parent.position.y + childCount * 100,
+    y: parent.position.y + slotIndex * 100,
   };
 }
 
@@ -282,10 +298,13 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     const parent = nodes.find((n) => n.id === parentId);
     if (!parent) return;
     pushHistory(snapshotNow());
-    const childCount = edges.filter((e) => e.source === parentId).length;
+    const childIds = new Set(edges.filter((e) => e.source === parentId).map((e) => e.target));
+    const children = nodes.filter((n) => childIds.has(n.id));
+    const newChildBucket = kind === "memo" ? nodeLevelOrder.length : nodeLevelOrder.indexOf(lastLevelRef.current);
+    const slotIndex = getChildSlotIndex(children, newChildBucket);
     const parentWidth = parent.measured?.width ?? parent.width ?? 160;
     const parentHeight = parent.measured?.height ?? parent.height ?? 60;
-    const pos = getChildPosition(preset.direction, parent, childCount, parentWidth, parentHeight);
+    const pos = getChildPosition(preset.direction, parent, slotIndex, parentWidth, parentHeight);
     const child = makeNode(kind, pos, randomFrom(bookmarkPalette), randomFrom(memoPalette), lastLevelRef.current);
     setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), { ...child, selected: true }]);
     setEdges((eds) =>

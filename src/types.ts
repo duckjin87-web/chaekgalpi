@@ -1,5 +1,12 @@
 export type BookStatus = "읽고싶음" | "읽는중" | "완독";
 
+export interface ReadingPrompts {
+  /** 읽기 전/중 생각해볼 간단한 질문 2가지 */
+  questions: string[];
+  /** 깊이 생각해볼 핵심 주제 1가지 */
+  coreTheme: string;
+}
+
 export interface Book {
   id: string;
   title: string;
@@ -12,6 +19,8 @@ export interface Book {
   finishDate?: string;
   tags: string[];
   createdAt: string;
+  /** 책 추가 시 제안되는 몰입형 독서 생각거리 */
+  readingPrompts?: ReadingPrompts;
 }
 
 export interface NodeAttachment {

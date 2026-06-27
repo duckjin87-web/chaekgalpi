@@ -16,6 +16,7 @@ export default function BookDetailPage() {
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState<Tab>(searchParams.get("tab") === "review" ? "review" : "mindmap");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showPrompts, setShowPrompts] = useState(false);
 
   if (!book || !bookId) {
     return (
@@ -50,6 +51,14 @@ export default function BookDetailPage() {
           </p>
         </div>
         <div className="flex gap-3">
+          {book.readingPrompts && (
+            <button
+              onClick={() => setShowPrompts((v) => !v)}
+              className="text-sm text-emerald-700 hover:underline"
+            >
+              {showPrompts ? "생각거리 닫기" : "읽기 전 생각거리"}
+            </button>
+          )}
           <button onClick={() => setShowEditModal(true)} className="text-sm text-stone-600 hover:underline">
             정보 수정
           </button>
@@ -58,6 +67,24 @@ export default function BookDetailPage() {
           </button>
         </div>
       </div>
+
+      {book.readingPrompts && showPrompts && (
+        <div className="mb-4 space-y-1.5 rounded-md border border-emerald-100 bg-emerald-50/60 p-3 text-sm text-stone-700">
+          <p className="text-xs font-medium text-emerald-800">📖 읽으며 생각해볼 것</p>
+          <p>
+            <span className="mr-1 font-medium text-emerald-800">Q1.</span>
+            {book.readingPrompts.questions[0]}
+          </p>
+          <p>
+            <span className="mr-1 font-medium text-emerald-800">Q2.</span>
+            {book.readingPrompts.questions[1]}
+          </p>
+          <p className="border-t border-emerald-100 pt-1.5">
+            <span className="mr-1 font-medium text-amber-700">핵심 주제.</span>
+            {book.readingPrompts.coreTheme}
+          </p>
+        </div>
+      )}
       {showEditModal && (
         <EditBookModal
           book={currentBook}

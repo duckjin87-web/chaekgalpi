@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import type { Book, BookStatus } from "../../types";
+import type { Book, BookStatus, ReadingPrompts } from "../../types";
 import { searchBooksByTitle, type BookSearchResult } from "../../lib/bookSearch";
+import { generateReadingPrompts } from "../../lib/readingPrompts";
 
 interface AddBookModalProps {
   onClose: () => void;
@@ -19,6 +20,22 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const lastAppliedTitle = useRef<string | null>(null);
+
+  // 몰입형 독서 생각거리 (검색 결과의 장르/설명을 활용해 제안)
+  const [prompts, setPrompts] = useState<ReadingPrompts | null>(null);
+  const bookMetaRef = useRef<{ description?: string; categories?: string[] }>({});
+
+  function suggestPrompts() {
+    if (!title.trim()) return;
+    setPrompts(
+      generateReadingPrompts({
+        title,
+        author,
+        description: bookMetaRef.current.description,
+        categories: bookMetaRef.current.categories,
+      })
+    );
+  }
 
   useEffect(() => {
     if (title.trim().length < 2 || title === lastAppliedTitle.current) return;
@@ -51,6 +68,16 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
     setCoverUrl(result.coverUrl);
     if (result.pageCount) setPageCount(String(result.pageCount));
     setResults([]);
+    bookMetaRef.current = { description: result.description, categories: result.categories };
+    // 책을 선택하면 장르/설명에 맞춰 생각거리를 자동 제안
+    setPrompts(
+      generateReadingPrompts({
+        title: result.title,
+        author: result.author,
+        description: result.description,
+        categories: result.categories,
+      })
+    );
   }
 
   function handleSubmit() {
@@ -65,13 +92,14 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean),
+      readingPrompts: prompts ?? undefined,
     });
     onClose();
   }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="w-80 space-y-3 rounded-md bg-white p-5 shadow-xl">
+      <div className="max-h-[90vh] w-80 space-y-3 overflow-y-auto rounded-md bg-white p-5 shadow-xl">
         <h2 className="font-serif text-lg text-stone-800">책 추가</h2>
         <div>
           <label className="block text-xs font-medium text-stone-600">제목</label>
@@ -157,6 +185,39 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
             onChange={(e) => setTagsInput(e.target.value)}
             placeholder="인문, 소설"
           />
+        </div>
+        <div>
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-medium text-stone-600">읽기 전 생각거리</label>
+            <button
+              type="button"
+              onClick={suggestPrompts}
+              disabled={!title.trim()}
+              className="rounded px-1.5 py-0.5 text-[11px] text-emerald-700 hover:bg-emerald-50 disabled:opacity-40"
+            >
+              {prompts ? "다시 제안 ↻" : "제안 받기"}
+            </button>
+          </div>
+          {prompts ? (
+            <div className="mt-1 space-y-1.5 rounded border border-emerald-100 bg-emerald-50/60 p-2 text-xs text-stone-700">
+              <p>
+                <span className="mr-1 font-medium text-emerald-800">Q1.</span>
+                {prompts.questions[0]}
+              </p>
+              <p>
+                <span className="mr-1 font-medium text-emerald-800">Q2.</span>
+                {prompts.questions[1]}
+              </p>
+              <p className="border-t border-emerald-100 pt-1.5">
+                <span className="mr-1 font-medium text-amber-700">핵심 주제.</span>
+                {prompts.coreTheme}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-1 text-[11px] text-stone-400">
+              책을 검색해 선택하거나 제목 입력 후 '제안 받기'를 누르면 몰입형 질문을 제안해드려요.
+            </p>
+          )}
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <button onClick={onClose} className="rounded px-3 py-1 text-sm text-stone-500 hover:bg-stone-100">

@@ -3,6 +3,8 @@ export interface BookSearchResult {
   author: string;
   coverUrl?: string;
   pageCount?: number;
+  description?: string;
+  categories?: string[];
 }
 
 export async function searchBooksByTitle(title: string): Promise<BookSearchResult[]> {
@@ -21,6 +23,8 @@ export async function searchBooksByTitle(title: string): Promise<BookSearchResul
       title?: string;
       authors?: string[];
       pageCount?: number;
+      description?: string;
+      categories?: string[];
       imageLinks?: { thumbnail?: string };
     };
   };
@@ -32,5 +36,7 @@ export async function searchBooksByTitle(title: string): Promise<BookSearchResul
       author: item.volumeInfo!.authors?.join(", ") ?? "",
       coverUrl: item.volumeInfo!.imageLinks?.thumbnail,
       pageCount: item.volumeInfo!.pageCount,
+      description: item.volumeInfo!.description,
+      categories: item.volumeInfo!.categories,
     }));
 }

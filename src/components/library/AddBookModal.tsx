@@ -102,6 +102,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
       publisher: publisher.trim() || undefined,
       publishedDate: publishedDate.trim() || undefined,
       isbn: isbn.trim() || undefined,
+      description: bookMetaRef.current.description,
       status,
       tags: tagsInput
         .split(",")

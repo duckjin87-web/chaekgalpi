@@ -47,6 +47,8 @@ export default function BookDetailPage() {
           <h1 className="font-serif text-2xl font-bold text-stone-800">{book.title}</h1>
           <p className="text-sm text-stone-500">
             {book.author}
+            {book.publisher ? ` · ${book.publisher}` : ""}
+            {book.publishedDate ? ` · ${book.publishedDate}` : ""}
             {book.pageCount ? ` · ${book.pageCount}쪽` : ""}
           </p>
         </div>

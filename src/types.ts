@@ -13,6 +13,9 @@ export interface Book {
   author: string;
   coverUrl?: string;
   pageCount?: number;
+  isbn?: string;
+  publisher?: string;
+  publishedDate?: string;
   status: BookStatus;
   rating?: number;
   startDate?: string;

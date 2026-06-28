@@ -220,3 +220,40 @@ export function generateReadingPrompts(source: PromptSource): ReadingPrompts {
 
   return { questions, coreTheme };
 }
+
+/**
+ * Gemini(서버리스 함수)로 책 맞춤 질문을 받아온다.
+ * API 미설정/네트워크 실패 시 로컬 휴리스틱 생성기로 자동 폴백한다.
+ */
+export async function fetchReadingPrompts(
+  source: PromptSource
+): Promise<{ prompts: ReadingPrompts; source: "ai" | "local" }> {
+  try {
+    const res = await fetch("/api/reading-prompts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: source.title,
+        author: source.author,
+        description: source.description,
+        categories: source.categories,
+      }),
+    });
+    if (!res.ok) throw new Error("AI 응답 실패");
+    const data = await res.json();
+    if (
+      Array.isArray(data.questions) &&
+      data.questions.length >= 2 &&
+      typeof data.coreTheme === "string" &&
+      data.coreTheme
+    ) {
+      return {
+        prompts: { questions: data.questions.slice(0, 2), coreTheme: data.coreTheme },
+        source: "ai",
+      };
+    }
+    throw new Error("AI 응답 형식 오류");
+  } catch {
+    return { prompts: generateReadingPrompts(source), source: "local" };
+  }
+}

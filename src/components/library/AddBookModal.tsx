@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Book, BookStatus, ReadingPrompts } from "../../types";
 import { searchBooksByTitle, type BookSearchResult } from "../../lib/bookSearch";
-import { generateReadingPrompts } from "../../lib/readingPrompts";
+import { fetchReadingPrompts } from "../../lib/readingPrompts";
 
 interface AddBookModalProps {
   onClose: () => void;
@@ -12,6 +12,9 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [pageCount, setPageCount] = useState("");
+  const [publisher, setPublisher] = useState("");
+  const [publishedDate, setPublishedDate] = useState("");
+  const [isbn, setIsbn] = useState("");
   const [coverUrl, setCoverUrl] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<BookStatus>("읽고싶음");
   const [tagsInput, setTagsInput] = useState("");
@@ -21,20 +24,28 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
   const [searchError, setSearchError] = useState<string | null>(null);
   const lastAppliedTitle = useRef<string | null>(null);
 
-  // 몰입형 독서 생각거리 (검색 결과의 장르/설명을 활용해 제안)
+  // 몰입형 독서 생각거리 (Gemini AI 우선, 실패 시 로컬 생성기 폴백)
   const [prompts, setPrompts] = useState<ReadingPrompts | null>(null);
+  const [promptsSource, setPromptsSource] = useState<"ai" | "local" | null>(null);
+  const [promptsLoading, setPromptsLoading] = useState(false);
   const bookMetaRef = useRef<{ description?: string; categories?: string[] }>({});
 
-  function suggestPrompts() {
-    if (!title.trim()) return;
-    setPrompts(
-      generateReadingPrompts({
-        title,
-        author,
-        description: bookMetaRef.current.description,
-        categories: bookMetaRef.current.categories,
-      })
-    );
+  async function suggestPrompts(meta?: { title: string; author: string; description?: string; categories?: string[] }) {
+    const src = meta ?? {
+      title,
+      author,
+      description: bookMetaRef.current.description,
+      categories: bookMetaRef.current.categories,
+    };
+    if (!src.title.trim()) return;
+    setPromptsLoading(true);
+    try {
+      const { prompts: p, source } = await fetchReadingPrompts(src);
+      setPrompts(p);
+      setPromptsSource(source);
+    } finally {
+      setPromptsLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -67,17 +78,18 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
     setAuthor(result.author);
     setCoverUrl(result.coverUrl);
     if (result.pageCount) setPageCount(String(result.pageCount));
+    setPublisher(result.publisher ?? "");
+    setPublishedDate(result.publishedDate ?? "");
+    setIsbn(result.isbn ?? "");
     setResults([]);
     bookMetaRef.current = { description: result.description, categories: result.categories };
-    // 책을 선택하면 장르/설명에 맞춰 생각거리를 자동 제안
-    setPrompts(
-      generateReadingPrompts({
-        title: result.title,
-        author: result.author,
-        description: result.description,
-        categories: result.categories,
-      })
-    );
+    // 책을 선택하면 실제 책 정보로 AI 생각거리를 자동 제안
+    void suggestPrompts({
+      title: result.title,
+      author: result.author,
+      description: result.description,
+      categories: result.categories,
+    });
   }
 
   function handleSubmit() {
@@ -87,6 +99,9 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
       author: author.trim(),
       coverUrl,
       pageCount: pageCount ? Number(pageCount) : undefined,
+      publisher: publisher.trim() || undefined,
+      publishedDate: publishedDate.trim() || undefined,
+      isbn: isbn.trim() || undefined,
       status,
       tags: tagsInput
         .split(",")
@@ -139,6 +154,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
                     <span className="truncate">
                       <span className="font-medium text-stone-800">{r.title}</span>
                       {r.author && <span className="text-stone-500"> · {r.author}</span>}
+                      {r.publisher && <span className="text-stone-400"> · {r.publisher}</span>}
                       {r.pageCount ? <span className="text-stone-400"> · {r.pageCount}p</span> : null}
                     </span>
                   </button>
@@ -155,14 +171,42 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
             onChange={(e) => setAuthor(e.target.value)}
           />
         </div>
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-stone-600">페이지 수</label>
+            <input
+              type="number"
+              min={0}
+              className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+              value={pageCount}
+              onChange={(e) => setPageCount(e.target.value)}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-stone-600">출판일</label>
+            <input
+              className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+              value={publishedDate}
+              onChange={(e) => setPublishedDate(e.target.value)}
+              placeholder="2020"
+            />
+          </div>
+        </div>
         <div>
-          <label className="block text-xs font-medium text-stone-600">페이지 수</label>
+          <label className="block text-xs font-medium text-stone-600">출판사</label>
           <input
-            type="number"
-            min={0}
             className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
-            value={pageCount}
-            onChange={(e) => setPageCount(e.target.value)}
+            value={publisher}
+            onChange={(e) => setPublisher(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-stone-600">ISBN</label>
+          <input
+            className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+            value={isbn}
+            onChange={(e) => setIsbn(e.target.value)}
+            placeholder="검색 시 자동 입력"
           />
         </div>
         <div>
@@ -188,17 +232,23 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
         </div>
         <div>
           <div className="flex items-center justify-between">
-            <label className="block text-xs font-medium text-stone-600">읽기 전 생각거리</label>
+            <label className="block text-xs font-medium text-stone-600">
+              읽기 전 생각거리
+              {promptsSource === "ai" && <span className="ml-1 text-[10px] text-emerald-600">· AI</span>}
+              {promptsSource === "local" && <span className="ml-1 text-[10px] text-stone-400">· 기본</span>}
+            </label>
             <button
               type="button"
-              onClick={suggestPrompts}
-              disabled={!title.trim()}
+              onClick={() => suggestPrompts()}
+              disabled={!title.trim() || promptsLoading}
               className="rounded px-1.5 py-0.5 text-[11px] text-emerald-700 hover:bg-emerald-50 disabled:opacity-40"
             >
-              {prompts ? "다시 제안 ↻" : "제안 받기"}
+              {promptsLoading ? "생성중…" : prompts ? "다시 제안 ↻" : "제안 받기"}
             </button>
           </div>
-          {prompts ? (
+          {promptsLoading ? (
+            <p className="mt-1 text-[11px] text-emerald-600">AI가 이 책에 맞는 질문을 만들고 있어요…</p>
+          ) : prompts ? (
             <div className="mt-1 space-y-1.5 rounded border border-emerald-100 bg-emerald-50/60 p-2 text-xs text-stone-700">
               <p>
                 <span className="mr-1 font-medium text-emerald-800">Q1.</span>

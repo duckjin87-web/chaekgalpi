@@ -158,6 +158,11 @@ export default async function handler(req: any, res: any) {
   }
 
   const ttbkey = process.env.ALADIN_TTB_KEY;
+  const debug: Record<string, unknown> = {
+    aladinKey: ttbkey ? `set(len:${ttbkey.length})` : "MISSING",
+    aladinError: null,
+    googleError: null,
+  };
   let results: BookResult[] = [];
   let source = "";
 
@@ -166,8 +171,9 @@ export default async function handler(req: any, res: any) {
     try {
       results = await fromAladin({ q, isbn, maxResults, ttbkey });
       if (results.length) source = "aladin";
-    } catch {
-      // 폴백으로 진행
+      else debug.aladinError = "결과 0건";
+    } catch (err: any) {
+      debug.aladinError = String(err?.message ?? err);
     }
   }
 
@@ -177,14 +183,13 @@ export default async function handler(req: any, res: any) {
       results = await fromGoogle({ q, isbn, maxResults });
       if (results.length) source = "google";
     } catch (err: any) {
-      if (!source) {
-        res.status(502).json({ error: "도서 검색 실패", detail: String(err?.message ?? err) });
-        return;
-      }
+      debug.googleError = String(err?.message ?? err);
+      res.status(502).json({ error: "도서 검색 실패", detail: String(err?.message ?? err), debug });
+      return;
     }
   }
 
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "public, s-maxage=86400, stale-while-revalidate=604800");
-  res.status(200).json({ source, results });
+  res.status(200).json({ source, results, debug });
 }

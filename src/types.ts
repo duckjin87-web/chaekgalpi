@@ -19,6 +19,7 @@ export interface Book {
   publishedDate?: string;
   description?: string;
   bookType?: string;
+  toc?: string[];
   status: BookStatus;
   rating?: number;
   startDate?: string;

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Book, BookStatus, ReadingPrompts } from "../../types";
-import { searchBooksByTitle, type BookSearchResult } from "../../lib/bookSearch";
+import { searchBooksByTitle, fetchBookByIsbn, type BookSearchResult } from "../../lib/bookSearch";
 import { fetchReadingPrompts } from "../../lib/readingPrompts";
 
 interface AddBookModalProps {
@@ -29,6 +29,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
   const [promptsSource, setPromptsSource] = useState<"ai" | "local" | null>(null);
   const [promptsLoading, setPromptsLoading] = useState(false);
   const bookMetaRef = useRef<{ description?: string; categories?: string[] }>({});
+  const [toc, setToc] = useState<string[] | undefined>(undefined);
 
   async function suggestPrompts(meta?: { title: string; author: string; description?: string; categories?: string[] }) {
     const src = meta ?? {
@@ -81,6 +82,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
     setPublisher(result.publisher ?? "");
     setPublishedDate(result.publishedDate ?? "");
     setIsbn(result.isbn ?? "");
+    setToc(result.toc);
     setResults([]);
     bookMetaRef.current = { description: result.description, categories: result.categories };
     // 책을 선택하면 실제 책 정보로 AI 생각거리를 자동 제안
@@ -90,6 +92,17 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
       description: result.description,
       categories: result.categories,
     });
+    // ISBN으로 페이지수·목차 등 상세 정보 보강 (검색 목록엔 없을 수 있음)
+    if (result.isbn) {
+      void fetchBookByIsbn(result.isbn).then((detail) => {
+        if (!detail) return;
+        if (detail.pageCount) setPageCount((p) => p || String(detail.pageCount));
+        if (detail.publisher) setPublisher((p) => p || detail.publisher!);
+        if (detail.publishedDate) setPublishedDate((p) => p || detail.publishedDate!);
+        if (detail.toc?.length) setToc(detail.toc);
+        if (detail.description) bookMetaRef.current.description = detail.description;
+      });
+    }
   }
 
   function handleSubmit() {
@@ -103,6 +116,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
       publishedDate: publishedDate.trim() || undefined,
       isbn: isbn.trim() || undefined,
       description: bookMetaRef.current.description,
+      toc: toc && toc.length ? toc : undefined,
       status,
       tags: tagsInput
         .split(",")

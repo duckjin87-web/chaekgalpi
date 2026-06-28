@@ -197,6 +197,20 @@ export default function BookDetailPage() {
               </div>
             )}
 
+            {/* 목차 */}
+            {book.toc && book.toc.length > 0 && (
+              <details className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+                <summary className="cursor-pointer text-xs font-medium text-stone-500">
+                  목차 ({book.toc.length})
+                </summary>
+                <ul className="mt-2 space-y-1 text-sm leading-relaxed text-stone-700">
+                  {book.toc.map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+
             {/* 태그 */}
             {book.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">

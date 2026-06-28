@@ -49,9 +49,10 @@ function mapVolume(item: VolumeItem): BookSearchResult {
 }
 
 async function queryGoogleBooks(q: string, maxResults = 5): Promise<BookSearchResult[]> {
+  // langRestrict는 결과를 과하게 걸러내므로 사용하지 않는다.
   const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
     q
-  )}&maxResults=${maxResults}&langRestrict=ko`;
+  )}&maxResults=${maxResults}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error("도서 검색에 실패했어요.");
   const data = await res.json();

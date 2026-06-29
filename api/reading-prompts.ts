@@ -41,12 +41,39 @@ function buildPrompt(src: PromptSource): string {
 }
 
 export default async function handler(req: any, res: any) {
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  // GET = 진단용: 키 유무 + 실제 Gemini 호출 결과를 그대로 보여준다.
+  if (req.method === "GET") {
+    const debug: Record<string, unknown> = {
+      geminiKey: apiKey ? `set(len:${apiKey.length})` : "MISSING",
+      model: MODEL,
+    };
+    if (apiKey) {
+      try {
+        const r = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: "테스트. '안녕'이라고만 답해." }] }] }),
+          }
+        );
+        debug.testStatus = r.status;
+        debug.testBody = (await r.text()).slice(0, 400);
+      } catch (err: any) {
+        debug.testError = String(err?.message ?? err);
+      }
+    }
+    res.status(200).json(debug);
+    return;
+  }
+
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     res.status(500).json({ error: "GEMINI_API_KEY 가 설정되지 않았습니다." });
     return;

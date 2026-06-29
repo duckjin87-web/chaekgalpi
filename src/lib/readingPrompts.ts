@@ -222,7 +222,7 @@ export function generateReadingPrompts(source: PromptSource): ReadingPrompts {
  */
 export async function fetchReadingPrompts(
   source: PromptSource
-): Promise<{ prompts: ReadingPrompts; source: "ai" | "local" }> {
+): Promise<{ prompts: ReadingPrompts; source: "ai" | "local"; error?: string }> {
   try {
     const res = await fetch("/api/reading-prompts", {
       method: "POST",
@@ -234,7 +234,18 @@ export async function fetchReadingPrompts(
         categories: source.categories,
       }),
     });
-    if (!res.ok) throw new Error("AI 응답 실패");
+    if (!res.ok) {
+      let reason = `오류 ${res.status}`;
+      try {
+        const e = await res.json();
+        const blob = `${e?.error ?? ""} ${e?.detail ?? ""}`;
+        if (/429|quota|exceeded/i.test(blob)) reason = "quota";
+        else if (e?.error) reason = String(e.error);
+      } catch {
+        /* noop */
+      }
+      throw new Error(reason);
+    }
     const data = await res.json();
     if (Array.isArray(data.questions) && data.questions.length >= 3) {
       return {
@@ -242,8 +253,12 @@ export async function fetchReadingPrompts(
         source: "ai",
       };
     }
-    throw new Error("AI 응답 형식 오류");
-  } catch {
-    return { prompts: generateReadingPrompts(source), source: "local" };
+    throw new Error("형식 오류");
+  } catch (e: any) {
+    return {
+      prompts: generateReadingPrompts(source),
+      source: "local",
+      error: String(e?.message ?? e),
+    };
   }
 }

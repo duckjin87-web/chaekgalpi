@@ -28,6 +28,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
   const [prompts, setPrompts] = useState<ReadingPrompts | null>(null);
   const [promptsSource, setPromptsSource] = useState<"ai" | "local" | null>(null);
   const [promptsLoading, setPromptsLoading] = useState(false);
+  const [promptsError, setPromptsError] = useState<string | null>(null);
   const bookMetaRef = useRef<{ description?: string; categories?: string[] }>({});
   const [toc, setToc] = useState<string[] | undefined>(undefined);
 
@@ -40,10 +41,18 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
     };
     if (!src.title.trim()) return;
     setPromptsLoading(true);
+    setPromptsError(null);
     try {
-      const { prompts: p, source } = await fetchReadingPrompts(src);
+      const { prompts: p, source, error } = await fetchReadingPrompts(src);
       setPrompts(p);
       setPromptsSource(source);
+      if (source === "local" && error) {
+        setPromptsError(
+          error === "quota"
+            ? "AI 무료 사용량이 초과됐어요. 잠시 후(또는 내일) 다시 시도해 주세요. (지금은 기본 질문)"
+            : `AI 생성 실패: ${error} (지금은 기본 질문)`
+        );
+      }
     } finally {
       setPromptsLoading(false);
     }
@@ -264,6 +273,9 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
               {promptsLoading ? "생성중…" : promptsSource === "ai" ? "AI 다시 제안 ↻" : "AI 질문 받기 ✨"}
             </button>
           </div>
+          {promptsError && (
+            <p className="mt-1 text-[11px] text-amber-600">⚠️ {promptsError}</p>
+          )}
           {promptsLoading ? (
             <p className="mt-1 text-[11px] text-emerald-600">AI가 이 책의 서평을 바탕으로 질문을 만들고 있어요…</p>
           ) : prompts ? (

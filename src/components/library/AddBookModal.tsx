@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Book, BookStatus, ReadingPrompts } from "../../types";
 import { searchBooksByTitle, fetchBookByIsbn, type BookSearchResult } from "../../lib/bookSearch";
-import { fetchReadingPrompts } from "../../lib/readingPrompts";
+import { fetchReadingPrompts, generateReadingPrompts } from "../../lib/readingPrompts";
 
 interface AddBookModalProps {
   onClose: () => void;
@@ -85,13 +85,16 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
     setToc(result.toc);
     setResults([]);
     bookMetaRef.current = { description: result.description, categories: result.categories };
-    // 책을 선택하면 실제 책 정보로 AI 생각거리를 자동 제안
-    void suggestPrompts({
-      title: result.title,
-      author: result.author,
-      description: result.description,
-      categories: result.categories,
-    });
+    // 책 선택 시엔 즉시 로컬 질문을 보여주고, AI 호출은 버튼으로만(무료 쿼터 절약)
+    setPrompts(
+      generateReadingPrompts({
+        title: result.title,
+        author: result.author,
+        description: result.description,
+        categories: result.categories,
+      })
+    );
+    setPromptsSource("local");
     // ISBN으로 페이지수·목차 등 상세 정보 보강 (검색 목록엔 없을 수 있음)
     if (result.isbn) {
       void fetchBookByIsbn(result.isbn).then((detail) => {
@@ -258,7 +261,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
               disabled={!title.trim() || promptsLoading}
               className="rounded px-1.5 py-0.5 text-[11px] text-emerald-700 hover:bg-emerald-50 disabled:opacity-40"
             >
-              {promptsLoading ? "생성중…" : prompts ? "다시 제안 ↻" : "제안 받기"}
+              {promptsLoading ? "생성중…" : promptsSource === "ai" ? "AI 다시 제안 ↻" : "AI 질문 받기 ✨"}
             </button>
           </div>
           {promptsLoading ? (

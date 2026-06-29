@@ -4,7 +4,8 @@
  * (키는 서버에만 보관되어 브라우저로 노출되지 않습니다.)
  */
 
-const MODEL = "gemini-2.0-flash";
+// flash-lite: 무료 등급 처리량(RPM)이 높아 쿼터에 덜 걸린다.
+const MODEL = "gemini-2.0-flash-lite";
 
 interface PromptSource {
   title?: string;
@@ -14,11 +15,13 @@ interface PromptSource {
 }
 
 function buildPrompt(src: PromptSource): string {
+  // 무료 토큰 한도 절약: 책 소개는 앞부분만 사용
+  const desc = src.description ? src.description.slice(0, 500) : "";
   const lines = [
     `책 제목: ${src.title ?? "(제목 미상)"}`,
     src.author ? `저자: ${src.author}` : "",
-    src.categories?.length ? `장르/분류: ${src.categories.join(", ")}` : "",
-    src.description ? `책 소개: ${src.description}` : "",
+    src.categories?.length ? `장르/분류: ${src.categories.slice(0, 5).join(", ")}` : "",
+    desc ? `책 소개: ${desc}` : "",
   ].filter(Boolean);
 
   return [
@@ -48,8 +51,10 @@ export default async function handler(req: any, res: any) {
     const debug: Record<string, unknown> = {
       geminiKey: apiKey ? `set(len:${apiKey.length})` : "MISSING",
       model: MODEL,
+      hint: "실제 호출 테스트는 ?test=1 을 붙이세요 (쿼터 소모)",
     };
-    if (apiKey) {
+    // ?test=1 일 때만 실제 Gemini 호출(토큰 소모)
+    if (apiKey && req.query?.test) {
       try {
         const r = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
@@ -93,6 +98,7 @@ export default async function handler(req: any, res: any) {
           generationConfig: {
             temperature: 0.9,
             responseMimeType: "application/json",
+            maxOutputTokens: 500,
           },
         }),
       }

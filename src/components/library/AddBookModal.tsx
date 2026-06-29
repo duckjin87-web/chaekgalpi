@@ -248,7 +248,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
         <div>
           <div className="flex items-center justify-between">
             <label className="block text-xs font-medium text-stone-600">
-              읽기 전 생각거리
+              서평 기반 질문 3가지
               {promptsSource === "ai" && <span className="ml-1 text-[10px] text-emerald-600">· AI</span>}
               {promptsSource === "local" && <span className="ml-1 text-[10px] text-stone-400">· 기본</span>}
             </label>
@@ -262,25 +262,25 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
             </button>
           </div>
           {promptsLoading ? (
-            <p className="mt-1 text-[11px] text-emerald-600">AI가 이 책에 맞는 질문을 만들고 있어요…</p>
+            <p className="mt-1 text-[11px] text-emerald-600">AI가 이 책의 서평을 바탕으로 질문을 만들고 있어요…</p>
           ) : prompts ? (
             <div className="mt-1 space-y-1.5 rounded border border-emerald-100 bg-emerald-50/60 p-2 text-xs text-stone-700">
-              <p>
-                <span className="mr-1 font-medium text-emerald-800">Q1.</span>
-                {prompts.questions[0]}
-              </p>
-              <p>
-                <span className="mr-1 font-medium text-emerald-800">Q2.</span>
-                {prompts.questions[1]}
-              </p>
-              <p className="border-t border-emerald-100 pt-1.5">
-                <span className="mr-1 font-medium text-amber-700">핵심 주제.</span>
-                {prompts.coreTheme}
-              </p>
+              {prompts.questions.map((q, i) => (
+                <p key={i}>
+                  <span className="mr-1 font-medium text-emerald-800">Q{i + 1}.</span>
+                  {q}
+                </p>
+              ))}
+              {prompts.coreTheme && (
+                <p className="border-t border-emerald-100 pt-1.5">
+                  <span className="mr-1 font-medium text-amber-700">핵심 주제.</span>
+                  {prompts.coreTheme}
+                </p>
+              )}
             </div>
           ) : (
             <p className="mt-1 text-[11px] text-stone-400">
-              책을 검색해 선택하거나 제목 입력 후 '제안 받기'를 누르면 몰입형 질문을 제안해드려요.
+              책을 검색해 선택하거나 제목 입력 후 '제안 받기'를 누르면 이 책의 서평을 토대로 질문 3가지를 제안해드려요.
             </p>
           )}
         </div>

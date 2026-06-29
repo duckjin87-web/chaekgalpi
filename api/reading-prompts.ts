@@ -23,19 +23,20 @@ function buildPrompt(src: PromptSource): string {
 
   return [
     "당신은 깊이 있는 독서를 돕는 독서 토론 코치입니다.",
-    "아래 책 정보를 바탕으로, 독자가 이 책을 더 몰입해서 읽도록 돕는 자료를 만들어 주세요.",
+    "아래 책에 대한 '서평·비평·독자 반응'에서 자주 논의되는 쟁점을 떠올려,",
+    "독자가 이 책을 더 몰입해서 읽도록 돕는 토론 질문 3가지를 만들어 주세요.",
     "",
     lines.join("\n"),
     "",
     "요구사항:",
-    "- 이 책의 '실제 내용·주제'와 밀접하게 연결된 질문을 만드세요. 어떤 책에나 통하는 일반적인 질문은 피하세요.",
-    "- 질문 2개: 읽기 전/중에 스스로 생각해볼 만한 구체적이고 흥미로운 질문.",
-    "- 핵심 주제 1개: 책을 관통하는, 깊이 곱씹어볼 만한 핵심 화두 한 가지(한두 문장).",
-    "- 모두 한국어로, 정중한 '~까?', '~보기' 같은 어조로 작성하세요.",
-    "- 책 소개 정보가 부족하면 제목·저자·장르로부터 합리적으로 추론하되 사실을 지어내지 마세요.",
+    "- 이 책에 대한 평론가·독자들의 서평에서 실제로 자주 거론되는 쟁점·논쟁·해석을 반영하세요.",
+    "- 이 책의 '실제 내용·주제'와 밀접하게 연결된 질문 3가지를 만드세요. 어떤 책에나 통하는 일반적 질문은 피하세요.",
+    "- 각 질문은 한 문장으로, 생각을 자극하는 열린 질문으로 작성하세요.",
+    "- 모두 한국어로, 정중한 '~까?' 같은 어조로 작성하세요.",
+    "- 책 정보가 부족하면 제목·저자·장르로부터 합리적으로 추론하되 사실을 지어내지 마세요.",
     "",
     "반드시 아래 JSON 형식으로만 답하세요:",
-    '{"questions": ["질문1", "질문2"], "coreTheme": "핵심 주제"}',
+    '{"questions": ["질문1", "질문2", "질문3"]}',
   ].join("\n");
 }
 
@@ -80,7 +81,7 @@ export default async function handler(req: any, res: any) {
     const text: string =
       data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-    let parsed: { questions?: unknown; coreTheme?: unknown } = {};
+    let parsed: { questions?: unknown } = {};
     try {
       parsed = JSON.parse(text);
     } catch {
@@ -90,16 +91,15 @@ export default async function handler(req: any, res: any) {
     }
 
     const questions = Array.isArray(parsed.questions)
-      ? parsed.questions.filter((q): q is string => typeof q === "string").slice(0, 2)
+      ? parsed.questions.filter((q): q is string => typeof q === "string").slice(0, 3)
       : [];
-    const coreTheme = typeof parsed.coreTheme === "string" ? parsed.coreTheme : "";
 
-    if (questions.length < 2 || !coreTheme) {
+    if (questions.length < 3) {
       res.status(502).json({ error: "응답 형식 오류", raw: text });
       return;
     }
 
-    res.status(200).json({ questions, coreTheme });
+    res.status(200).json({ questions });
   } catch (err: any) {
     res.status(500).json({ error: "서버 오류", detail: String(err?.message ?? err) });
   }

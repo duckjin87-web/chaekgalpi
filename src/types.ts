@@ -1,10 +1,10 @@
 export type BookStatus = "읽고싶음" | "읽는중" | "완독";
 
 export interface ReadingPrompts {
-  /** 읽기 전/중 생각해볼 간단한 질문 2가지 */
+  /** 책의 서평·비평에서 자주 논의되는 쟁점 기반 질문 3가지 */
   questions: string[];
-  /** 깊이 생각해볼 핵심 주제 1가지 */
-  coreTheme: string;
+  /** (구버전 호환) 깊이 생각해볼 핵심 주제 */
+  coreTheme?: string;
 }
 
 export interface Book {

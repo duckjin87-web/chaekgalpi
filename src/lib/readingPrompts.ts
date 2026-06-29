@@ -196,16 +196,9 @@ const TEMPLATES: Record<Genre, Template> = {
   },
 };
 
-function pickTwoDistinct<T>(arr: T[]): T[] {
-  if (arr.length <= 2) return [...arr];
-  const first = Math.floor(Math.random() * arr.length);
-  let second = Math.floor(Math.random() * (arr.length - 1));
-  if (second >= first) second += 1;
-  return [arr[first], arr[second]];
-}
-
-function pickOne<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+function pickDistinct<T>(arr: T[], count: number): T[] {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, arr.length));
 }
 
 export function generateReadingPrompts(source: PromptSource): ReadingPrompts {
@@ -213,16 +206,18 @@ export function generateReadingPrompts(source: PromptSource): ReadingPrompts {
   const template = TEMPLATES[genre];
   const title = source.title.trim() || "이 책";
 
-  const questions = pickTwoDistinct(template.questions).map((q) =>
-    q.replace(/\{title\}/g, `《${title}》`)
-  );
-  const coreTheme = pickOne(template.coreThemes).replace(/\{title\}/g, `《${title}》`);
+  // 질문 3가지 구성: 장르 질문 풀에서 뽑되, 부족하면 핵심 주제를 질문화해 보충
+  const pool = [...template.questions];
+  if (pool.length < 3) {
+    template.coreThemes.forEach((t) => pool.push(`${t.replace(/보기$/, "보면 어떨까")}?`));
+  }
+  const questions = pickDistinct(pool, 3).map((q) => q.replace(/\{title\}/g, `《${title}》`));
 
-  return { questions, coreTheme };
+  return { questions };
 }
 
 /**
- * Gemini(서버리스 함수)로 책 맞춤 질문을 받아온다.
+ * Gemini(서버리스 함수)로 책의 서평·비평 기반 질문 3가지를 받아온다.
  * API 미설정/네트워크 실패 시 로컬 휴리스틱 생성기로 자동 폴백한다.
  */
 export async function fetchReadingPrompts(
@@ -241,14 +236,9 @@ export async function fetchReadingPrompts(
     });
     if (!res.ok) throw new Error("AI 응답 실패");
     const data = await res.json();
-    if (
-      Array.isArray(data.questions) &&
-      data.questions.length >= 2 &&
-      typeof data.coreTheme === "string" &&
-      data.coreTheme
-    ) {
+    if (Array.isArray(data.questions) && data.questions.length >= 3) {
       return {
-        prompts: { questions: data.questions.slice(0, 2), coreTheme: data.coreTheme },
+        prompts: { questions: data.questions.slice(0, 3) },
         source: "ai",
       };
     }

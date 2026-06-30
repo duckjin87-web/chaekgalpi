@@ -46,28 +46,52 @@ function buildPrompt(src: PromptSource): string {
 export default async function handler(req: any, res: any) {
   const apiKey = process.env.GEMINI_API_KEY;
 
-  // GET = 진단용: 키 유무 + 실제 Gemini 호출 결과를 그대로 보여준다.
+  // GET = 진단용: 키 유무 + 여러 모델 실제 호출 결과를 그대로 보여준다.
   if (req.method === "GET") {
     const debug: Record<string, unknown> = {
       geminiKey: apiKey ? `set(len:${apiKey.length})` : "MISSING",
-      model: MODEL,
-      hint: "실제 호출 테스트는 ?test=1 을 붙이세요 (쿼터 소모)",
+      defaultModel: MODEL,
+      hint: "여러 모델 실시간 테스트는 ?test=1 (각 모델 1회씩 호출)",
     };
-    // ?test=1 일 때만 실제 Gemini 호출(토큰 소모)
+    // ?test=1 일 때만 실제 Gemini 호출. 여러 모델을 동시에 점검해 '특정 모델만 막힘' vs '전부 막힘' 구분
     if (apiKey && req.query?.test) {
+      const models = [
+        "gemini-2.0-flash-lite",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-2.5-flash",
+      ];
+      const results: Record<string, unknown> = {};
+      for (const m of models) {
+        try {
+          const r = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ contents: [{ parts: [{ text: "hi" }] }] }),
+            }
+          );
+          const body = await r.text();
+          results[m] =
+            r.status === 200 ? "200 OK" : `${r.status} :: ${body.replace(/\s+/g, " ").slice(0, 220)}`;
+        } catch (err: any) {
+          results[m] = `ERR ${String(err?.message ?? err)}`;
+        }
+      }
+      debug.modelTests = results;
+      // 사용 가능한 모델 목록도 조회(키/프로젝트 상태 확인)
       try {
-        const r = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: "테스트. '안녕'이라고만 답해." }] }] }),
-          }
+        const lr = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
         );
-        debug.testStatus = r.status;
-        debug.testBody = (await r.text()).slice(0, 400);
+        const lb = await lr.json();
+        debug.listModelsStatus = lr.status;
+        debug.availableModels = Array.isArray(lb?.models)
+          ? lb.models.map((x: any) => x.name).slice(0, 40)
+          : lb;
       } catch (err: any) {
-        debug.testError = String(err?.message ?? err);
+        debug.listModelsError = String(err?.message ?? err);
       }
     }
     res.status(200).json(debug);

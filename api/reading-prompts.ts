@@ -4,8 +4,8 @@
  * (키는 서버에만 보관되어 브라우저로 노출되지 않습니다.)
  */
 
-// flash-lite: 무료 등급 처리량(RPM)이 높아 쿼터에 덜 걸린다.
-const MODEL = "gemini-2.0-flash-lite";
+// gemini-2.5-flash: 이 키에서 무료로 정상 동작 확인됨(2.0 계열은 429로 막힘).
+const MODEL = "gemini-2.5-flash";
 
 interface PromptSource {
   title?: string;

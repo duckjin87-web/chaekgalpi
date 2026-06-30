@@ -122,7 +122,10 @@ export default async function handler(req: any, res: any) {
           generationConfig: {
             temperature: 0.9,
             responseMimeType: "application/json",
-            maxOutputTokens: 500,
+            maxOutputTokens: 2048,
+            // 2.5 계열은 사고(thinking) 모델 — thinking을 끄지 않으면 출력 토큰을
+            // 사고에 다 써서 실제 답(JSON)이 비어 나오는 문제가 있어 비활성화한다.
+            thinkingConfig: { thinkingBudget: 0 },
           },
         }),
       }
@@ -135,8 +138,11 @@ export default async function handler(req: any, res: any) {
     }
 
     const data = await geminiRes.json();
-    const text: string =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const cand = data?.candidates?.[0];
+    // parts가 여러 개로 나뉘어 올 수 있어 모두 합친다.
+    const text: string = Array.isArray(cand?.content?.parts)
+      ? cand.content.parts.map((p: any) => p?.text ?? "").join("")
+      : cand?.content?.parts?.[0]?.text ?? "";
 
     let parsed: { questions?: unknown } = {};
     try {
@@ -144,15 +150,34 @@ export default async function handler(req: any, res: any) {
     } catch {
       // JSON 블록이 코드펜스로 감싸진 경우 대비
       const match = text.match(/\{[\s\S]*\}/);
-      if (match) parsed = JSON.parse(match[0]);
+      if (match) {
+        try {
+          parsed = JSON.parse(match[0]);
+        } catch {
+          /* noop */
+        }
+      }
     }
 
-    const questions = Array.isArray(parsed.questions)
-      ? parsed.questions.filter((q): q is string => typeof q === "string").slice(0, 3)
+    let questions = Array.isArray(parsed.questions)
+      ? parsed.questions.filter((q): q is string => typeof q === "string")
       : [];
+    // JSON 파싱 실패 시: 텍스트에서 줄 단위 질문이라도 건진다(폴백)
+    if (questions.length < 3 && text) {
+      const lines = text
+        .split("\n")
+        .map((l) => l.replace(/^[\s"'\-*\d.)\]]+/, "").replace(/[",]+$/, "").trim())
+        .filter((l) => l.endsWith("?") || l.endsWith("까") || l.length > 8);
+      if (lines.length >= 3) questions = lines.slice(0, 3);
+    }
+    questions = questions.slice(0, 3);
 
     if (questions.length < 3) {
-      res.status(502).json({ error: "응답 형식 오류", raw: text });
+      res.status(502).json({
+        error: "응답 형식 오류",
+        finishReason: cand?.finishReason ?? null,
+        raw: (text || JSON.stringify(data)).slice(0, 600),
+      });
       return;
     }
 

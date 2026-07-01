@@ -225,23 +225,10 @@ export default function BookDetailPage() {
               </div>
             )}
 
-            {/* 서평 기반 생각거리 */}
             {book.readingPrompts && (
-              <div className="space-y-1.5 rounded-xl border border-emerald-100 bg-emerald-50/60 p-4 text-sm text-stone-700">
-                <p className="text-xs font-medium text-emerald-800">📖 서평으로 보는 생각거리</p>
-                {book.readingPrompts.questions.map((q, i) => (
-                  <p key={i}>
-                    <span className="mr-1 font-medium text-emerald-800">Q{i + 1}.</span>
-                    {q}
-                  </p>
-                ))}
-                {book.readingPrompts.coreTheme && (
-                  <p className="border-t border-emerald-100 pt-1.5">
-                    <span className="mr-1 font-medium text-amber-700">핵심 주제.</span>
-                    {book.readingPrompts.coreTheme}
-                  </p>
-                )}
-              </div>
+              <p className="text-center text-[11px] text-stone-400">
+                📖 서평 기반 생각거리는 '독후감' 탭에서 답을 적으며 볼 수 있어요
+              </p>
             )}
           </div>
         )}

@@ -28,6 +28,8 @@ export interface Book {
   createdAt: string;
   /** 책 추가 시 제안되는 몰입형 독서 생각거리 */
   readingPrompts?: ReadingPrompts;
+  /** 생각거리 질문별 간략 답변(질문과 같은 순서) */
+  promptAnswers?: string[];
 }
 
 export interface NodeAttachment {

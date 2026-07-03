@@ -70,7 +70,8 @@ export default function LibraryPage() {
 
   return (
     <div className="paper-texture min-h-screen p-6">
-      <h1 className="mb-6 font-serif text-3xl font-bold tracking-tight text-stone-800">나의 서재</h1>
+      <h1 className="font-serif text-3xl font-bold tracking-tight text-stone-800">나의 서재</h1>
+      <div className="paper-torn mb-6 mt-2 w-40" />
       <LibraryToolbar
         search={search}
         onSearchChange={setSearch}

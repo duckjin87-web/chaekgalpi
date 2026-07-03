@@ -141,7 +141,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="max-h-[90vh] w-80 space-y-3 overflow-y-auto rounded-md bg-white p-5 shadow-xl">
+      <div className="paper-card max-h-[90vh] w-80 space-y-3 overflow-y-auto rounded-md p-5">
         <h2 className="font-serif text-lg text-stone-800">책 추가</h2>
         <div>
           <label className="block text-xs font-medium text-stone-600">제목</label>

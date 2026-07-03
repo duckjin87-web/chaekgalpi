@@ -29,7 +29,7 @@ export default function EditBookModal({ book, onClose, onSave }: EditBookModalPr
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="max-h-[90vh] w-80 space-y-3 overflow-y-auto rounded-md bg-white p-5 shadow-xl">
+      <div className="paper-card max-h-[90vh] w-80 space-y-3 overflow-y-auto rounded-md p-5">
         <h2 className="font-serif text-lg text-stone-800">책 정보 수정</h2>
         <p className="text-sm text-stone-500">{book.title}</p>
         <div>

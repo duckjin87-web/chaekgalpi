@@ -5,4 +5,30 @@
 body {
   margin: 0;
   font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  background-color: #f2e9d6;
+  color: #3f3a33;
+}
+
+/* 세리프(에디토리얼) 제목용 */
+.font-serif {
+  font-family: Georgia, "Times New Roman", "Nanum Myeongjo", "AppleMyungjo", "Apple SD Gothic Neo",
+    serif;
+}
+
+@layer components {
+  /* 종이 질감 배경: 따뜻한 크림 + 미세 그레인 + 은은한 비네트 */
+  .paper-texture {
+    background-color: #f2e9d6;
+    background-image:
+      radial-gradient(120% 90% at 50% 0%, rgba(255, 252, 244, 0.7) 0%, rgba(242, 233, 214, 0) 55%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    background-repeat: no-repeat, repeat;
+  }
+
+  /* 종이 카드: 살짝 따뜻한 화이트 + 부드러운 그림자 + 미세 그레인 */
+  .paper-card {
+    background-color: #fdfaf3;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    box-shadow: 0 1px 2px rgba(63, 58, 51, 0.06), 0 8px 20px -12px rgba(63, 58, 51, 0.25);
+  }
 }

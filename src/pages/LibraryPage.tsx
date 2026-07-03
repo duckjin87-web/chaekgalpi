@@ -69,8 +69,8 @@ export default function LibraryPage() {
   const showDateFilters = finishedBooks.length > DATE_FILTER_THRESHOLD;
 
   return (
-    <div className="min-h-screen bg-stone-50 p-6">
-      <h1 className="mb-6 font-serif text-2xl font-bold text-stone-800">나의 서재</h1>
+    <div className="paper-texture min-h-screen p-6">
+      <h1 className="mb-6 font-serif text-3xl font-bold tracking-tight text-stone-800">나의 서재</h1>
       <LibraryToolbar
         search={search}
         onSearchChange={setSearch}

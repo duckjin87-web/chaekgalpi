@@ -428,7 +428,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
 
   return (
     <MindMapContext.Provider value={actions}>
-      <div className="relative h-full w-full rounded-md border border-stone-300 bg-[#faf7f0]">
+      <div className="paper-texture relative h-full w-full rounded-md border border-stone-300">
         <div className="absolute left-4 top-4 z-10 flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <button

@@ -69,7 +69,7 @@ export default function BookDetailPage() {
   const progress = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
 
   return (
-    <div className="flex h-screen flex-col bg-stone-50">
+    <div className="paper-texture flex h-screen flex-col">
       <div className="flex-shrink-0 overflow-y-auto px-5 pt-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="text-sm text-stone-500 hover:underline">
@@ -86,7 +86,7 @@ export default function BookDetailPage() {
         {showInfo && (
           <div className="mt-3 space-y-3">
             {/* 헤더 카드 */}
-            <div className="flex gap-4 rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+            <div className="flex gap-4 rounded-xl paper-card border border-stone-200/60 p-4">
               {book.coverUrl ? (
                 <img
                   src={book.coverUrl}
@@ -122,17 +122,17 @@ export default function BookDetailPage() {
 
             {/* 정보 칩 */}
             <div className="grid grid-cols-3 gap-2">
-              <div className="rounded-lg border border-stone-200 bg-white p-2.5 text-center">
+              <div className="paper-card rounded-lg border border-stone-200/60 p-2.5 text-center">
                 <p className="text-[11px] text-stone-400">📚 책 유형</p>
                 <p className="mt-0.5 text-sm font-medium text-stone-700">{book.bookType ?? "종이책"}</p>
               </div>
-              <div className="rounded-lg border border-stone-200 bg-white p-2.5 text-center">
+              <div className="paper-card rounded-lg border border-stone-200/60 p-2.5 text-center">
                 <p className="text-[11px] text-stone-400">📖 전체 페이지</p>
                 <p className="mt-0.5 text-sm font-medium text-stone-700">
                   {total > 0 ? `p. ${total}` : "—"}
                 </p>
               </div>
-              <div className="rounded-lg border border-stone-200 bg-white p-2.5 text-center">
+              <div className="paper-card rounded-lg border border-stone-200/60 p-2.5 text-center">
                 <p className="text-[11px] text-stone-400">🗓 출판</p>
                 <p className="mt-0.5 text-sm font-medium text-stone-700">
                   {book.publishedDate ?? "—"}
@@ -142,7 +142,7 @@ export default function BookDetailPage() {
 
             {/* 독서 진행률 */}
             {total > 0 && (
-              <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+              <div className="rounded-xl paper-card border border-stone-200/60 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-stone-500">독서 진행률</span>
                   {days !== null && (
@@ -177,7 +177,7 @@ export default function BookDetailPage() {
 
             {/* 책 소개 */}
             {book.description && (
-              <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+              <div className="rounded-xl paper-card border border-stone-200/60 p-4">
                 <p className="mb-1.5 text-xs font-medium text-stone-500">책 소개</p>
                 <p
                   className={`whitespace-pre-line text-sm leading-relaxed text-stone-700 ${
@@ -199,7 +199,7 @@ export default function BookDetailPage() {
 
             {/* 목차 */}
             {book.toc && book.toc.length > 0 && (
-              <details className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+              <details className="rounded-xl paper-card border border-stone-200/60 p-4">
                 <summary className="cursor-pointer text-xs font-medium text-stone-500">
                   목차 ({book.toc.length})
                 </summary>

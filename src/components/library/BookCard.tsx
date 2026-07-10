@@ -16,7 +16,7 @@ export default function BookCard({ book }: BookCardProps) {
   const accent = book.coverUrl ? undefined : randomBookmarkColor();
 
   return (
-    <div className="paper-card group relative flex w-40 flex-col gap-2 rounded-md border border-stone-200/60 p-3 transition-transform hover:-translate-y-1">
+    <div className="paper-card group relative flex w-40 shrink-0 flex-col gap-2 rounded-md border border-stone-200/60 p-3 transition-transform hover:-translate-y-1">
       <Link to={`/book/${book.id}`} className="flex flex-col gap-2">
         <div
           className="flex h-52 w-full items-center justify-center overflow-hidden rounded-sm bg-stone-100 text-center text-sm text-white"
@@ -29,9 +29,7 @@ export default function BookCard({ book }: BookCardProps) {
           )}
         </div>
         <div>
-          <p className="truncate font-serif text-sm font-medium text-stone-800">{book.title}</p>
-          <p className="truncate text-xs text-stone-500">{book.author}</p>
-          <span className="mt-1 inline-block rounded-full bg-stone-100 px-2 py-0.5 text-[11px] text-stone-600">
+          <span className="inline-block rounded-full bg-stone-100 px-2 py-0.5 text-[11px] text-stone-600">
             {statusLabel[book.status]}
           </span>
         </div>

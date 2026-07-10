@@ -9,16 +9,22 @@ interface EditBookModalProps {
 
 export default function EditBookModal({ book, onClose, onSave }: EditBookModalProps) {
   const [author, setAuthor] = useState(book.author);
+  const [bookType, setBookType] = useState<"종이책" | "전자책">(
+    book.bookType === "전자책" ? "전자책" : "종이책"
+  );
   const [pageCount, setPageCount] = useState(book.pageCount ? String(book.pageCount) : "");
   const [currentPage, setCurrentPage] = useState(book.currentPage ? String(book.currentPage) : "");
   const [publisher, setPublisher] = useState(book.publisher ?? "");
   const [publishedDate, setPublishedDate] = useState(book.publishedDate ?? "");
   const [status, setStatus] = useState<BookStatus>(book.status);
 
+  const isEbook = bookType === "전자책";
+
   function handleSubmit() {
     onSave({
       author: author.trim(),
-      pageCount: pageCount ? Number(pageCount) : undefined,
+      bookType,
+      pageCount: isEbook ? undefined : pageCount ? Number(pageCount) : undefined,
       currentPage: currentPage ? Number(currentPage) : undefined,
       publisher: publisher.trim() || undefined,
       publishedDate: publishedDate.trim() || undefined,
@@ -49,22 +55,38 @@ export default function EditBookModal({ book, onClose, onSave }: EditBookModalPr
             onChange={(e) => setPublisher(e.target.value)}
           />
         </div>
+        <div>
+          <label className="block text-xs font-medium text-stone-600">책 유형</label>
+          <select
+            className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+            value={bookType}
+            onChange={(e) => setBookType(e.target.value as "종이책" | "전자책")}
+          >
+            <option value="종이책">종이책</option>
+            <option value="전자책">전자책</option>
+          </select>
+        </div>
         <div className="flex gap-2">
+          {!isEbook && (
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-stone-600">전체 페이지</label>
+              <input
+                type="number"
+                min={0}
+                className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+                value={pageCount}
+                onChange={(e) => setPageCount(e.target.value)}
+              />
+            </div>
+          )}
           <div className="flex-1">
-            <label className="block text-xs font-medium text-stone-600">전체 페이지</label>
+            <label className="block text-xs font-medium text-stone-600">
+              {isEbook ? "현재 진도 (%)" : "현재 페이지"}
+            </label>
             <input
               type="number"
               min={0}
-              className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
-              value={pageCount}
-              onChange={(e) => setPageCount(e.target.value)}
-            />
-          </div>
-          <div className="flex-1">
-            <label className="block text-xs font-medium text-stone-600">현재 페이지</label>
-            <input
-              type="number"
-              min={0}
+              max={isEbook ? 100 : undefined}
               className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
               value={currentPage}
               onChange={(e) => setCurrentPage(e.target.value)}

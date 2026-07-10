@@ -85,15 +85,20 @@ export default function LibraryPage() {
         onMonthFilterChange={setMonthFilter}
       />
 
+      {/* 한 달 내에 읽은 책장은 상단에 고정 */}
+      <Bookshelf title="최근 한 달 내에 읽은 책" books={recentFinished} />
+
       {inProgressBooks.length > 0 && (
-        <div className="mb-8 flex flex-wrap gap-4">
-          {inProgressBooks.map((book) => (
-            <BookCard key={book.id} book={book} />
-          ))}
+        <div className="mb-8">
+          <p className="mb-2 text-sm font-medium text-stone-600">읽는 중 · 읽고 싶은 책</p>
+          <div className="flex gap-4 overflow-x-auto pb-3">
+            {inProgressBooks.map((book) => (
+              <BookCard key={book.id} book={book} />
+            ))}
+          </div>
         </div>
       )}
 
-      <Bookshelf title="최근 한 달 내에 읽은 책" books={recentFinished} />
       <Bookshelf title="그 이전에 읽은 책" books={olderFinished} compact />
 
       {filteredBooks.length === 0 && (

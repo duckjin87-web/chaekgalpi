@@ -64,13 +64,14 @@ export default function BookDetailPage() {
   }
 
   const days = daysSince(book.startDate ?? book.createdAt);
-  const total = book.pageCount ?? 0;
+  const isEbook = book.bookType === "전자책";
+  const total = isEbook ? 100 : book.pageCount ?? 0;
   const current = book.currentPage ?? 0;
   const progress = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
 
   return (
-    <div className="paper-texture flex h-screen flex-col">
-      <div className="flex-shrink-0 overflow-y-auto px-5 pt-4">
+    <div className="paper-texture h-screen overflow-y-auto">
+      <div className="px-5 pt-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="text-sm text-stone-500 hover:underline">
             ← 서재로
@@ -127,9 +128,9 @@ export default function BookDetailPage() {
                 <p className="mt-0.5 text-sm font-medium text-stone-700">{book.bookType ?? "종이책"}</p>
               </div>
               <div className="paper-card rounded-lg border border-stone-200/60 p-2.5 text-center">
-                <p className="text-[11px] text-stone-400">📖 전체 페이지</p>
+                <p className="text-[11px] text-stone-400">{isEbook ? "📖 진도 단위" : "📖 전체 페이지"}</p>
                 <p className="mt-0.5 text-sm font-medium text-stone-700">
-                  {total > 0 ? `p. ${total}` : "—"}
+                  {isEbook ? "% (0~100)" : book.pageCount ? `p. ${book.pageCount}` : "—"}
                 </p>
               </div>
               <div className="paper-card rounded-lg border border-stone-200/60 p-2.5 text-center">
@@ -156,7 +157,7 @@ export default function BookDetailPage() {
                   />
                 </div>
                 <div className="mt-2 flex items-center gap-2 text-sm">
-                  <span className="text-stone-400">p.</span>
+                  {!isEbook && <span className="text-stone-400">p.</span>}
                   <input
                     type="number"
                     min={0}
@@ -169,7 +170,7 @@ export default function BookDetailPage() {
                     }}
                     className="w-16 rounded border border-stone-300 px-1.5 py-0.5 text-center font-semibold text-stone-800"
                   />
-                  <span className="text-stone-400">/ {total}</span>
+                  <span className="text-stone-400">{isEbook ? "%" : `/ ${total}`}</span>
                   <span className="ml-auto font-semibold text-emerald-700">{progress}%</span>
                 </div>
               </div>
@@ -242,8 +243,8 @@ export default function BookDetailPage() {
         />
       )}
 
-      {/* 탭 */}
-      <div className="mt-4 mb-3 flex flex-shrink-0 gap-4 border-b border-stone-200 px-5">
+      {/* 탭 (스크롤 시 상단 고정) */}
+      <div className="paper-texture sticky top-0 z-10 mb-3 mt-4 flex gap-4 border-b border-stone-200 px-5 pt-2">
         <button
           onClick={() => setTab("mindmap")}
           className={`pb-2 text-sm ${
@@ -262,8 +263,14 @@ export default function BookDetailPage() {
         </button>
       </div>
 
-      <div className={`min-h-0 flex-1 px-5 pb-5 ${tab === "mindmap" ? "overflow-hidden" : "overflow-auto"}`}>
-        {tab === "mindmap" ? <MindMapEditor bookId={bookId} /> : <ReviewEditor bookId={bookId} />}
+      <div className="px-5 pb-6">
+        {tab === "mindmap" ? (
+          <div className="h-[80vh] w-full">
+            <MindMapEditor bookId={bookId} />
+          </div>
+        ) : (
+          <ReviewEditor bookId={bookId} />
+        )}
       </div>
     </div>
   );

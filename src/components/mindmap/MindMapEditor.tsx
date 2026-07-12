@@ -227,13 +227,15 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges]);
 
-  useEffect(() => {
-    if (skipFirstSave.current) {
-      skipFirstSave.current = false;
-      return;
-    }
+  // 저장 로직: 매 변경마다 전체 스토어를 localStorage에 직렬화하면
+  // 드래그/연속 편집 중 프리즈(먹통)가 나므로 디바운스로 묶는다.
+  const saveTimerRef = useRef<number | null>(null);
+  const latestRef = useRef<{ nodes: FlowNode[]; edges: Edge[] }>({ nodes, edges });
+  latestRef.current = { nodes, edges };
+
+  function persistNow(nodesArg: FlowNode[], edgesArg: Edge[]) {
     updateMindMap(bookId, {
-      nodes: nodes.map((n) => ({
+      nodes: nodesArg.map((n) => ({
         id: n.id,
         type: (n.type ?? "bookmark") as MindNodeKind,
         position: n.position,
@@ -241,10 +243,30 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
         height: n.height ?? n.measured?.height,
         data: n.data,
       })),
-      edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target })),
+      edges: edgesArg.map((e) => ({ id: e.id, source: e.source, target: e.target })),
     });
+  }
+
+  useEffect(() => {
+    if (skipFirstSave.current) {
+      skipFirstSave.current = false;
+      return;
+    }
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = window.setTimeout(() => {
+      persistNow(latestRef.current.nodes, latestRef.current.edges);
+    }, 600);
+    return () => {
+      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nodes, edges]);
+
+  // 화면 이탈 시 마지막 상태를 즉시 저장(디바운스 대기분 flush)
+  useEffect(() => {
+    return () => persistNow(latestRef.current.nodes, latestRef.current.edges);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function onNodesChange(changes: NodeChange<FlowNode>[]) {
     const isDragStart = changes.some(

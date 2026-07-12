@@ -48,14 +48,14 @@ function makeNode(
       position,
       width: 200,
       height: 140,
-      data: { text: "", color: memoColor, memo: "", attachments: [], fontSize: 14, opacity: 1 },
+      data: { text: "", color: memoColor, memo: "", attachments: [], fontSize: 14, opacity: 1, autoEdit: true },
     };
   }
   return {
     id: crypto.randomUUID(),
     type: "bookmark",
     position,
-    data: { text: "새 노드", color: bookmarkColor, memo: "", attachments: [], level },
+    data: { text: "새 노드", color: bookmarkColor, memo: "", attachments: [], level, autoEdit: true },
   };
 }
 
@@ -164,7 +164,6 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   const dragInitialPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const [isDraggingNode, setIsDraggingNode] = useState(false);
   const [overTrash, setOverTrash] = useState(false);
-  const [trashPosition, setTrashPosition] = useState({ x: 0, y: 0 });
   const trashRef = useRef<HTMLDivElement>(null);
 
   // 마지막으로 사용한 노드 레벨(제목/대/중/소)을 기억해 다음 노드 생성 시 그대로 유지
@@ -364,8 +363,8 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     return { x: event.clientX, y: event.clientY };
   }
 
-  // 기능 1: 노드를 꾹 눌러 드래그 시작 → 누른 노드 근처에 쓰레기통 표시 + 하위 노드 동반 이동
-  function handleNodeDragStart(event: globalThis.MouseEvent | TouchEvent, node: FlowNode) {
+  // 기능 1: 노드를 꾹 눌러 드래그 시작 → 하단 중앙 쓰레기통 표시 + 하위 노드 동반 이동
+  function handleNodeDragStart(_event: globalThis.MouseEvent | TouchEvent, node: FlowNode) {
     dragDescendantsRef.current = getDescendantIds(node.id, edges);
     const positions = new Map<string, { x: number; y: number }>();
     positions.set(node.id, node.position);
@@ -374,14 +373,6 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
       if (n) positions.set(id, n.position);
     });
     dragInitialPositionsRef.current = positions;
-
-    const point = clientPointFromEvent(event);
-    const offset = 80;
-    const aboveFits = point.y - offset - 40 >= 0;
-    setTrashPosition({
-      x: Math.min(Math.max(point.x, 40), window.innerWidth - 40),
-      y: aboveFits ? point.y - offset : point.y + offset,
-    });
     setIsDraggingNode(true);
   }
 
@@ -514,18 +505,20 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
           ↪︎
         </button>
 
-        {/* 꾹 누른 노드 근처에 뜨는 쓰레기통: 그쪽으로 끌어다 놓으면 삭제 */}
+        {/* 하단 중앙 쓰레기통: 노드를 여기로 끌어다 놓으면 삭제 */}
         {isDraggingNode && (
           <div
             ref={trashRef}
             style={{
               position: "fixed",
-              left: trashPosition.x,
-              top: trashPosition.y,
-              transform: "translate(-50%, -50%)",
+              left: "50%",
+              bottom: 28,
+              transform: "translateX(-50%)",
             }}
-            className={`pointer-events-none z-30 flex h-16 w-16 items-center justify-center rounded-full border-2 text-2xl shadow-xl transition-all ${
-              overTrash ? "scale-110 border-red-600 bg-red-100 opacity-100" : "border-stone-400 bg-white opacity-90"
+            className={`pointer-events-none z-30 flex h-20 w-20 items-center justify-center rounded-full border-2 text-3xl shadow-xl transition-all ${
+              overTrash
+                ? "scale-110 border-red-600 bg-red-100 opacity-100"
+                : "border-stone-400 bg-white/95 opacity-90"
             }`}
           >
             🗑

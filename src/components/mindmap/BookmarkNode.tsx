@@ -28,6 +28,17 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 
+  // 새로 만든 노드는 바로 편집 상태로 시작
+  const didAutoEdit = useRef(false);
+  useEffect(() => {
+    if (data.autoEdit && !didAutoEdit.current) {
+      didAutoEdit.current = true;
+      setEditing(true);
+      updateNodeData(id, { autoEdit: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.autoEdit]);
+
   function commitDraft() {
     setEditing(false);
     if (draft !== data.text) updateNodeData(id, { text: draft });

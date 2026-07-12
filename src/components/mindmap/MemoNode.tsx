@@ -28,6 +28,17 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 
+  // 새로 만든 메모는 바로 편집 상태로 시작
+  const didAutoEdit = useRef(false);
+  useEffect(() => {
+    if (data.autoEdit && !didAutoEdit.current) {
+      didAutoEdit.current = true;
+      setEditing(true);
+      updateNodeData(id, { autoEdit: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.autoEdit]);
+
   function commitDraft() {
     setEditing(false);
     if (draft !== data.text) updateNodeData(id, { text: draft });
@@ -57,7 +68,7 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
 
       {selected && (
         <div
-          className="nodrag nopan nowheel absolute -top-12 left-0 z-20 flex items-center gap-1.5 rounded-full border border-white/40 bg-white/80 px-2 py-1 shadow-xl backdrop-blur-md"
+          className="nodrag nopan nowheel absolute left-1/2 top-full z-20 mt-3 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/40 bg-white/85 px-2 py-1 shadow-xl backdrop-blur-md"
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}

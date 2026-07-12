@@ -53,6 +53,8 @@ export interface MindMapNodeData extends Record<string, unknown> {
   fontSize?: number;
   /** 포스트잇 메모 투명도 (0~1) */
   opacity?: number;
+  /** 새로 만든 노드는 바로 편집(타이핑) 상태로 시작 */
+  autoEdit?: boolean;
 }
 
 export interface MindMapNode {

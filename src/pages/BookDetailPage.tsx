@@ -70,8 +70,8 @@ export default function BookDetailPage() {
   const progress = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
 
   return (
-    <div className="paper-texture h-screen overflow-y-auto">
-      <div className="px-5 pt-4">
+    <div className="paper-texture flex h-screen flex-col">
+      <div className="flex-shrink-0 px-5 pt-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="text-sm text-stone-500 hover:underline">
             ← 서재로
@@ -83,9 +83,10 @@ export default function BookDetailPage() {
             {showInfo ? "정보 접기 ▲" : "정보 펼치기 ▼"}
           </button>
         </div>
+      </div>
 
-        {showInfo && (
-          <div className="mt-3 space-y-3">
+      {showInfo && (
+        <div className="max-h-[46vh] flex-shrink-0 space-y-3 overflow-y-auto px-5 pt-2">
             {/* 헤더 카드 */}
             <div className="flex gap-4 rounded-xl paper-card border border-stone-200/60 p-4">
               {book.coverUrl ? (
@@ -226,14 +227,13 @@ export default function BookDetailPage() {
               </div>
             )}
 
-            {book.readingPrompts && (
-              <p className="text-center text-[11px] text-stone-400">
-                📖 서평 기반 생각거리는 '독후감' 탭에서 답을 적으며 볼 수 있어요
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+          {book.readingPrompts && (
+            <p className="text-center text-[11px] text-stone-400">
+              📖 서평 기반 생각거리는 '독후감' 탭에서 답을 적으며 볼 수 있어요
+            </p>
+          )}
+        </div>
+      )}
 
       {showEditModal && (
         <EditBookModal
@@ -243,8 +243,8 @@ export default function BookDetailPage() {
         />
       )}
 
-      {/* 탭 (스크롤 시 상단 고정) */}
-      <div className="paper-texture sticky top-0 z-10 mb-3 mt-4 flex gap-4 border-b border-stone-200 px-5 pt-2">
+      {/* 탭 */}
+      <div className="mb-3 mt-3 flex flex-shrink-0 gap-4 border-b border-stone-200 px-5">
         <button
           onClick={() => setTab("mindmap")}
           className={`pb-2 text-sm ${
@@ -263,9 +263,11 @@ export default function BookDetailPage() {
         </button>
       </div>
 
-      <div className="px-5 pb-6">
+      <div
+        className={`min-h-0 flex-1 px-5 pb-5 ${tab === "mindmap" ? "overflow-hidden" : "overflow-auto"}`}
+      >
         {tab === "mindmap" ? (
-          <div className="h-[80vh] w-full">
+          <div className="h-full w-full">
             <MindMapEditor bookId={bookId} />
           </div>
         ) : (

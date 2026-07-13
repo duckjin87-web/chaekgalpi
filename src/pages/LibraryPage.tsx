@@ -39,10 +39,24 @@ export default function LibraryPage() {
     () => filteredBooks.filter((b) => b.status === "완독"),
     [filteredBooks]
   );
-  const inProgressBooks = useMemo(
-    () => filteredBooks.filter((b) => b.status !== "완독"),
-    [filteredBooks]
-  );
+  const mindMaps = useLibraryStore((s) => s.mindMaps);
+  const reviews = useLibraryStore((s) => s.reviews);
+
+  // 마인드맵/독후감을 최근에 수정한 책이 맨 앞(좌측)에 오도록 정렬
+  const inProgressBooks = useMemo(() => {
+    const lastTouched = (b: Book): number => {
+      const mm = mindMaps.find((m) => m.bookId === b.id)?.updatedAt;
+      const rv = reviews.find((r) => r.bookId === b.id)?.updatedAt;
+      return Math.max(
+        new Date(mm ?? 0).getTime() || 0,
+        new Date(rv ?? 0).getTime() || 0,
+        new Date(b.createdAt).getTime() || 0
+      );
+    };
+    return filteredBooks
+      .filter((b) => b.status !== "완독")
+      .sort((a, b) => lastTouched(b) - lastTouched(a));
+  }, [filteredBooks, mindMaps, reviews]);
 
   const years = useMemo(() => {
     const set = new Set(finishedBooks.map((b) => readDate(b).getFullYear()));

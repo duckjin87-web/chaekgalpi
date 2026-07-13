@@ -70,23 +70,21 @@ export default function BookDetailPage() {
   const progress = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
 
   return (
-    <div className="paper-texture flex h-screen flex-col">
-      <div className="flex-shrink-0 px-5 pt-4">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="text-sm text-stone-500 hover:underline">
-            ← 서재로
-          </Link>
-          <button
-            onClick={() => setShowInfo((v) => !v)}
-            className="text-xs text-stone-400 hover:text-stone-600"
-          >
-            {showInfo ? "정보 접기 ▲" : "정보 펼치기 ▼"}
-          </button>
-        </div>
+    <div className="paper-texture h-screen overflow-y-auto">
+      <div className="paper-texture sticky top-0 z-30 flex items-center justify-between px-5 pb-1 pt-3">
+        <Link to="/" className="text-sm text-stone-500 hover:underline">
+          ← 서재로
+        </Link>
+        <button
+          onClick={() => setShowInfo((v) => !v)}
+          className="text-xs text-stone-400 hover:text-stone-600"
+        >
+          {showInfo ? "정보 접기 ▲" : "정보 펼치기 ▼"}
+        </button>
       </div>
 
       {showInfo && (
-        <div className="max-h-[46vh] flex-shrink-0 space-y-3 overflow-y-auto px-5 pt-2">
+        <div className="space-y-3 px-5 pt-1">
             {/* 매거진 화보형 헤더 */}
             <div className="relative mt-2">
               {/* 뒤에 깔린 잉크색 종이 레이어 */}
@@ -256,8 +254,8 @@ export default function BookDetailPage() {
         />
       )}
 
-      {/* 탭 */}
-      <div className="mb-3 mt-3 flex flex-shrink-0 gap-4 border-b border-stone-200 px-5">
+      {/* 탭 (스크롤 시 상단 고정) */}
+      <div className="paper-texture sticky top-[38px] z-20 mt-3 flex gap-4 border-b border-stone-200 px-5">
         <button
           onClick={() => setTab("mindmap")}
           className={`pb-2 font-serif text-sm tracking-wide ${
@@ -276,11 +274,10 @@ export default function BookDetailPage() {
         </button>
       </div>
 
-      <div
-        className={`min-h-0 flex-1 px-5 pb-5 ${tab === "mindmap" ? "overflow-hidden" : "overflow-auto"}`}
-      >
+      {/* 콘텐츠: 마인드맵은 화면을 꽉 채우고, 위쪽 sticky 헤더/탭으로 정보로 복귀 가능 */}
+      <div className="px-5 pb-6 pt-3">
         {tab === "mindmap" ? (
-          <div className="h-full w-full">
+          <div className="h-[calc(100vh-90px)] w-full">
             <MindMapEditor bookId={bookId} />
           </div>
         ) : (

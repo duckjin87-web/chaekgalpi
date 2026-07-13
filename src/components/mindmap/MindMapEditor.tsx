@@ -162,6 +162,9 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   // 드래그 시 함께 움직일 하위 노드 추적
   const dragDescendantsRef = useRef<string[]>([]);
   const dragInitialPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  // 드래그 시작할 때 임시로 떼어낸 부모→노드 엣지 (드롭 시 근처에 놓이면 새 부모로 재부착)
+  const detachedEdgeRef = useRef<Edge | null>(null);
+  const [hoverAttachId, setHoverAttachId] = useState<string | null>(null);
   const [isDraggingNode, setIsDraggingNode] = useState(false);
   const [overTrash, setOverTrash] = useState(false);
   const trashRef = useRef<HTMLDivElement>(null);
@@ -385,7 +388,32 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     return { x: event.clientX, y: event.clientY };
   }
 
-  // 기능 1: 노드를 꾹 눌러 드래그 시작 → 하단 중앙 쓰레기통 표시 + 하위 노드 동반 이동
+  // 드롭 시 근처 노드에 재부착할 때의 거리 임계값(플로우 좌표계)
+  const ATTACH_THRESHOLD = 220;
+
+  function nodeCenter(n: FlowNode): { x: number; y: number } {
+    const w = n.measured?.width ?? n.width ?? 160;
+    const h = n.measured?.height ?? n.height ?? 60;
+    return { x: n.position.x + w / 2, y: n.position.y + h / 2 };
+  }
+
+  function findNearestAttachTarget(
+    dragged: FlowNode,
+    all: FlowNode[],
+    exclude: Set<string>
+  ): { node: FlowNode; dist: number } | null {
+    const c1 = nodeCenter(dragged);
+    let best: { node: FlowNode; dist: number } | null = null;
+    for (const n of all) {
+      if (n.id === dragged.id || exclude.has(n.id)) continue;
+      const c2 = nodeCenter(n);
+      const d = Math.hypot(c1.x - c2.x, c1.y - c2.y);
+      if (d <= ATTACH_THRESHOLD && (!best || d < best.dist)) best = { node: n, dist: d };
+    }
+    return best;
+  }
+
+  // 기능 1+2: 꾹 눌러 드래그 시작 → 부모와 분리 + 하위 트리는 함께 이동 + 하단 쓰레기통
   function handleNodeDragStart(_event: globalThis.MouseEvent | TouchEvent, node: FlowNode) {
     dragDescendantsRef.current = getDescendantIds(node.id, edges);
     const positions = new Map<string, { x: number; y: number }>();
@@ -395,6 +423,12 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
       if (n) positions.set(id, n.position);
     });
     dragInitialPositionsRef.current = positions;
+
+    // 부모 엣지가 있으면 임시로 떼어낸다 (드롭 시 근처 노드에 재부착)
+    const incoming = edges.find((e) => e.target === node.id) ?? null;
+    detachedEdgeRef.current = incoming;
+    if (incoming) setEdges((eds) => eds.filter((e) => e.id !== incoming.id));
+
     setIsDraggingNode(true);
   }
 
@@ -413,21 +447,56 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     }
     const point = clientPointFromEvent(event);
     setOverTrash(pointerOverTrash(point.x, point.y));
+
+    // 근처 재부착 대상 미리보기 (하이라이트)
+    const draggedNow = { ...node };
+    const exclude = new Set([...dragDescendantsRef.current, node.id]);
+    const nearest = findNearestAttachTarget(draggedNow, latestRef.current.nodes, exclude);
+    setHoverAttachId(nearest?.node.id ?? null);
   }
 
   function handleNodeDragStop(event: globalThis.MouseEvent | TouchEvent, node: FlowNode) {
     const point = clientPointFromEvent(event);
     const droppedOnTrash = pointerOverTrash(point.x, point.y);
+    const wasDetached = detachedEdgeRef.current;
+    const descendantsForCheck = [...dragDescendantsRef.current];
+
     setIsDraggingNode(false);
     setOverTrash(false);
+    setHoverAttachId(null);
     dragDescendantsRef.current = [];
     dragInitialPositionsRef.current = new Map();
+    detachedEdgeRef.current = null;
+
     if (droppedOnTrash) {
       if (dragSnapshotRef.current) {
         dragSnapshotRef.current = null;
       }
       deleteNode(node.id);
+      return;
     }
+
+    // 근처 노드가 있으면 그 노드에 자식으로 재부착 (원래 부모 자리로 돌아가도 자동 복원)
+    const exclude = new Set([...descendantsForCheck, node.id]);
+    const nearest = findNearestAttachTarget(node, latestRef.current.nodes, exclude);
+    if (nearest) {
+      // 원래 부모와 동일하면 원 엣지 그대로 복원, 아니면 새 엣지 생성
+      if (wasDetached && wasDetached.source === nearest.node.id) {
+        setEdges((eds) => (eds.some((e) => e.id === wasDetached.id) ? eds : [...eds, wasDetached]));
+      } else {
+        const kind = (nearest.node.type ?? "bookmark") as MindNodeKind;
+        setEdges((eds) => [
+          ...eds,
+          {
+            id: crypto.randomUUID(),
+            source: nearest.node.id,
+            target: node.id,
+            type: edgeTypeForPair(kind, node.id),
+          },
+        ]);
+      }
+    }
+    // 근처 노드가 없으면 부모와 완전히 분리된 상태로 남는다(orphan)
   }
 
   const actions: MindMapActions = {
@@ -474,10 +543,17 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
           </p>
         </div>
         <ReactFlow
-          nodes={nodes}
+          nodes={
+            hoverAttachId
+              ? nodes.map((n) =>
+                  n.id === hoverAttachId ? { ...n, className: "rf-attach-target" } : n
+                )
+              : nodes
+          }
           edges={edges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
+          preventScrolling={false}
           defaultEdgeOptions={{ type: preset.edgeType, style: { strokeWidth: 2.5, stroke: "#57534e" } }}
           onNodesChange={onNodesChange}
           onEdgesChange={(changes) => {

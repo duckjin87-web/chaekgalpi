@@ -73,6 +73,12 @@ body {
     transform: rotate(38deg);
   }
 
+  /* 드래그 재부착 대상 노드 하이라이트 (은은한 잉크색 링) */
+  .rf-attach-target > * {
+    box-shadow: 0 0 0 3px rgba(34, 51, 90, 0.7), 0 0 24px rgba(34, 51, 90, 0.35) !important;
+    transition: box-shadow 120ms ease-out;
+  }
+
   /* 잉크 네이비 (매거진 포인트 컬러) */
   .text-ink {
     color: #22335a;

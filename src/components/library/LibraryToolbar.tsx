@@ -79,7 +79,7 @@ export default function LibraryToolbar({
       )}
       <button
         onClick={onAddClick}
-        className="ml-auto rounded bg-emerald-800 px-3 py-1.5 text-sm text-white hover:bg-emerald-900"
+        className="bg-ink ml-auto rounded-sm px-3 py-1.5 text-sm tracking-wide text-white shadow"
       >
         + 책 추가
       </button>

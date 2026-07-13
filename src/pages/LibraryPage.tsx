@@ -84,8 +84,25 @@ export default function LibraryPage() {
 
   return (
     <div className="paper-texture min-h-screen p-6">
-      <h1 className="font-serif text-3xl font-bold tracking-tight text-stone-800">나의 서재</h1>
-      <div className="paper-torn mb-6 mt-2 w-40" />
+      {/* 매거진 마스트헤드 */}
+      <header className="mb-6">
+        <p className="text-[10px] font-medium tracking-[0.45em] text-ink">READING JOURNAL</p>
+        <div className="flex items-end justify-between">
+          <h1 className="font-serif text-5xl font-black leading-none tracking-tight text-ink">
+            책갈피
+          </h1>
+          <div className="pb-1 text-right text-[10px] leading-relaxed tracking-[0.25em] text-stone-500">
+            <p>ONE PAGE,</p>
+            <p>MY STORY.</p>
+          </div>
+        </div>
+        <div className="mt-2 flex items-center justify-between border-t-2 border-ink pt-1.5 text-[10px] tracking-[0.2em] text-stone-500">
+          <span>나의 서재 · ARCHIVE</span>
+          <span>
+            ISSUE NO. {books.length} · {new Date().getFullYear()}
+          </span>
+        </div>
+      </header>
       <LibraryToolbar
         search={search}
         onSearchChange={setSearch}
@@ -104,8 +121,11 @@ export default function LibraryPage() {
 
       {inProgressBooks.length > 0 && (
         <div className="mb-8">
-          <p className="mb-2 text-sm font-medium text-stone-600">읽는 중 · 읽고 싶은 책</p>
-          <div className="flex gap-4 overflow-x-auto pb-3">
+          <div className="mb-1 flex items-baseline gap-2">
+            <p className="font-serif text-base font-bold text-ink">읽는 중 · 읽고 싶은 책</p>
+            <span className="text-[9px] tracking-[0.3em] text-stone-400">ON MY DESK</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-3">
             {inProgressBooks.map((book) => (
               <BookCard key={book.id} book={book} />
             ))}

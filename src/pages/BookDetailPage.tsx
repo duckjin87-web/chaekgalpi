@@ -87,37 +87,50 @@ export default function BookDetailPage() {
 
       {showInfo && (
         <div className="max-h-[46vh] flex-shrink-0 space-y-3 overflow-y-auto px-5 pt-2">
-            {/* 헤더 카드 */}
-            <div className="flex gap-4 rounded-xl paper-card border border-stone-200/60 p-4">
-              {book.coverUrl ? (
-                <img
-                  src={book.coverUrl}
-                  alt={book.title}
-                  className="h-32 w-24 flex-shrink-0 rounded-md object-cover shadow"
-                />
-              ) : (
-                <div className="flex h-32 w-24 flex-shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-stone-300 to-stone-400 text-3xl">
-                  📖
+            {/* 매거진 화보형 헤더 */}
+            <div className="relative mt-2">
+              {/* 뒤에 깔린 잉크색 종이 레이어 */}
+              <div className="absolute inset-0 translate-x-1 translate-y-1.5 rotate-[1.2deg] rounded-sm bg-[#22335a]/85" />
+              <div className="paper-card relative flex gap-4 rounded-sm p-4">
+                <div className="relative flex-shrink-0">
+                  <span className="tape tape-tl" />
+                  {book.coverUrl ? (
+                    <img
+                      src={book.coverUrl}
+                      alt={book.title}
+                      className="h-36 w-[104px] object-cover shadow-md"
+                    />
+                  ) : (
+                    <div className="flex h-36 w-[104px] items-center justify-center bg-gradient-to-br from-stone-300 to-stone-400 text-3xl shadow-md">
+                      📖
+                    </div>
+                  )}
                 </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <h1 className="font-serif text-xl font-bold leading-tight text-stone-800">
-                  {book.title}
-                </h1>
-                <p className="mt-1 text-sm text-stone-600">{book.author}</p>
-                {book.publisher && <p className="text-sm text-stone-400">{book.publisher}</p>}
-                <span
-                  className={`mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyle[book.status]}`}
-                >
-                  {book.status}
-                </span>
-                <div className="mt-2 flex gap-3 text-xs">
-                  <button onClick={() => setShowEditModal(true)} className="text-stone-500 hover:underline">
-                    정보 수정
-                  </button>
-                  <button onClick={handleDelete} className="text-red-500 hover:underline">
-                    삭제
-                  </button>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] tracking-[0.35em] text-stone-400">NOW READING</p>
+                  <h1 className="mt-0.5 font-serif text-2xl font-black leading-tight tracking-tight text-ink">
+                    {book.title}
+                  </h1>
+                  <p className="mt-1 text-sm text-stone-600">{book.author}</p>
+                  {book.publisher && (
+                    <p className="text-xs tracking-wide text-stone-400">{book.publisher}</p>
+                  )}
+                  <span
+                    className={`mt-2 inline-block rounded-sm px-2 py-0.5 text-[11px] font-medium tracking-[0.15em] ${statusStyle[book.status]}`}
+                  >
+                    {book.status}
+                  </span>
+                  <div className="mt-2 flex gap-3 text-xs">
+                    <button
+                      onClick={() => setShowEditModal(true)}
+                      className="text-stone-500 hover:underline"
+                    >
+                      정보 수정
+                    </button>
+                    <button onClick={handleDelete} className="text-red-500 hover:underline">
+                      삭제
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -247,16 +260,16 @@ export default function BookDetailPage() {
       <div className="mb-3 mt-3 flex flex-shrink-0 gap-4 border-b border-stone-200 px-5">
         <button
           onClick={() => setTab("mindmap")}
-          className={`pb-2 text-sm ${
-            tab === "mindmap" ? "border-b-2 border-emerald-800 font-medium text-emerald-800" : "text-stone-500"
+          className={`pb-2 font-serif text-sm tracking-wide ${
+            tab === "mindmap" ? "border-ink text-ink border-b-2 font-bold" : "text-stone-500"
           }`}
         >
           마인드맵
         </button>
         <button
           onClick={() => setTab("review")}
-          className={`pb-2 text-sm ${
-            tab === "review" ? "border-b-2 border-emerald-800 font-medium text-emerald-800" : "text-stone-500"
+          className={`pb-2 font-serif text-sm tracking-wide ${
+            tab === "review" ? "border-ink text-ink border-b-2 font-bold" : "text-stone-500"
           }`}
         >
           독후감

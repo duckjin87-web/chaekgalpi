@@ -11,8 +11,8 @@ body {
 
 /* 세리프(에디토리얼) 제목용 */
 .font-serif {
-  font-family: Georgia, "Times New Roman", "Nanum Myeongjo", "AppleMyungjo", "Apple SD Gothic Neo",
-    serif;
+  font-family: "Noto Serif KR", Georgia, "Times New Roman", "Nanum Myeongjo", "AppleMyungjo",
+    "Apple SD Gothic Neo", serif;
 }
 
 @layer components {
@@ -40,6 +40,51 @@ body {
       inset 0 0 0 1px rgba(120, 96, 55, 0.06),
       0 2px 3px rgba(70, 58, 38, 0.09),
       0 16px 28px -14px rgba(70, 58, 38, 0.35);
+  }
+
+  /* 마스킹 테이프: 카드/사진을 종이에 붙인 느낌 */
+  .tape {
+    position: absolute;
+    width: 84px;
+    height: 24px;
+    background-color: rgba(246, 240, 222, 0.65);
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.35) 0 2px,
+      transparent 2px 5px
+    );
+    box-shadow: 0 1px 2px rgba(70, 58, 38, 0.18);
+    clip-path: polygon(2% 6%, 6% 0, 95% 3%, 100% 12%, 98% 88%, 100% 96%, 5% 100%, 0 90%);
+    pointer-events: none;
+  }
+  .tape-tl {
+    left: -26px;
+    top: -10px;
+    transform: rotate(-38deg);
+  }
+  .tape-tc {
+    left: 50%;
+    top: -12px;
+    transform: translateX(-50%) rotate(-2deg);
+  }
+  .tape-tr {
+    right: -26px;
+    top: -10px;
+    transform: rotate(38deg);
+  }
+
+  /* 잉크 네이비 (매거진 포인트 컬러) */
+  .text-ink {
+    color: #22335a;
+  }
+  .bg-ink {
+    background-color: #22335a;
+  }
+  .bg-ink:hover {
+    background-color: #1a2847;
+  }
+  .border-ink {
+    border-color: #22335a;
   }
 
   /* 찢긴 종이 가장자리 (장식용 구분선) */

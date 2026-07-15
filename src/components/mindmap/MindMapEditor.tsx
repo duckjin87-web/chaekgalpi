@@ -169,6 +169,14 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   const [overTrash, setOverTrash] = useState(false);
   const trashRef = useRef<HTMLDivElement>(null);
 
+  // 2초 이상 눌렀을 때만 '분리 모드' 활성화 — 짧게 누르고 움직이면 트리 유지
+  const DETACH_HOLD_MS = 2000;
+  const detachArmRef = useRef<{ nodeId: string | null; timer: number | null }>({
+    nodeId: null,
+    timer: null,
+  });
+  const [armedDetachId, setArmedDetachId] = useState<string | null>(null);
+
   // 마지막으로 사용한 노드 레벨(제목/대/중/소)을 기억해 다음 노드 생성 시 그대로 유지
   const lastLevelRef = useRef<NodeLevel>("medium");
 
@@ -413,8 +421,14 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     return best;
   }
 
-  // 기능 1+2: 꾹 눌러 드래그 시작 → 부모와 분리 + 하위 트리는 함께 이동 + 하단 쓰레기통
+  // 기능 1+2: 꾹 눌러 드래그 시작 → 하단 쓰레기통 + 하위 트리 동반 이동
+  // 2초 이상 홀드 후 이동해야만 부모 트리와 분리(detachArmRef.current.nodeId === node.id)
   function handleNodeDragStart(_event: globalThis.MouseEvent | TouchEvent, node: FlowNode) {
+    // 진행 중이던 홀드 타이머 정리
+    if (detachArmRef.current.timer) {
+      window.clearTimeout(detachArmRef.current.timer);
+      detachArmRef.current.timer = null;
+    }
     dragDescendantsRef.current = getDescendantIds(node.id, edges);
     const positions = new Map<string, { x: number; y: number }>();
     positions.set(node.id, node.position);
@@ -424,10 +438,15 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     });
     dragInitialPositionsRef.current = positions;
 
-    // 부모 엣지가 있으면 임시로 떼어낸다 (드롭 시 근처 노드에 재부착)
-    const incoming = edges.find((e) => e.target === node.id) ?? null;
-    detachedEdgeRef.current = incoming;
-    if (incoming) setEdges((eds) => eds.filter((e) => e.id !== incoming.id));
+    // '분리 모드'가 준비된 노드일 때만 부모 엣지를 임시로 떼어낸다.
+    // 그 외(짧게 눌러 바로 드래그)에는 트리 구조 유지한 채 이동만 함.
+    if (detachArmRef.current.nodeId === node.id) {
+      const incoming = edges.find((e) => e.target === node.id) ?? null;
+      detachedEdgeRef.current = incoming;
+      if (incoming) setEdges((eds) => eds.filter((e) => e.id !== incoming.id));
+    } else {
+      detachedEdgeRef.current = null;
+    }
 
     setIsDraggingNode(true);
   }
@@ -448,17 +467,22 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     const point = clientPointFromEvent(event);
     setOverTrash(pointerOverTrash(point.x, point.y));
 
-    // 근처 재부착 대상 미리보기 (하이라이트)
-    const draggedNow = { ...node };
-    const exclude = new Set([...dragDescendantsRef.current, node.id]);
-    const nearest = findNearestAttachTarget(draggedNow, latestRef.current.nodes, exclude);
-    setHoverAttachId(nearest?.node.id ?? null);
+    // 분리 모드일 때만 재부착 대상 미리보기(잉크 링) 표시
+    if (detachedEdgeRef.current !== undefined && detachArmRef.current.nodeId === node.id) {
+      const draggedNow = { ...node };
+      const exclude = new Set([...dragDescendantsRef.current, node.id]);
+      const nearest = findNearestAttachTarget(draggedNow, latestRef.current.nodes, exclude);
+      setHoverAttachId(nearest?.node.id ?? null);
+    } else if (hoverAttachId) {
+      setHoverAttachId(null);
+    }
   }
 
   function handleNodeDragStop(event: globalThis.MouseEvent | TouchEvent, node: FlowNode) {
     const point = clientPointFromEvent(event);
     const droppedOnTrash = pointerOverTrash(point.x, point.y);
     const wasDetached = detachedEdgeRef.current;
+    const detachModeActive = detachArmRef.current.nodeId === node.id;
     const descendantsForCheck = [...dragDescendantsRef.current];
 
     setIsDraggingNode(false);
@@ -467,6 +491,13 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     dragDescendantsRef.current = [];
     dragInitialPositionsRef.current = new Map();
     detachedEdgeRef.current = null;
+    // 이번 드래그에서 사용한 armed 플래그도 초기화
+    detachArmRef.current.nodeId = null;
+    if (detachArmRef.current.timer) {
+      window.clearTimeout(detachArmRef.current.timer);
+      detachArmRef.current.timer = null;
+    }
+    setArmedDetachId(null);
 
     if (droppedOnTrash) {
       if (dragSnapshotRef.current) {
@@ -475,6 +506,9 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
       deleteNode(node.id);
       return;
     }
+
+    // 분리 모드가 아니었다면 트리 구조 유지된 채 이동만 완료 — 재부착 로직 스킵
+    if (!detachModeActive) return;
 
     // 근처 노드가 있으면 그 노드에 자식으로 재부착 (원래 부모 자리로 돌아가도 자동 복원)
     const exclude = new Set([...descendantsForCheck, node.id]);
@@ -499,6 +533,33 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     // 근처 노드가 없으면 부모와 완전히 분리된 상태로 남는다(orphan)
   }
 
+  // 2초 이상 홀드 감지: 노드 위에서 pointerdown 되면 타이머 시작,
+  // 2초 뒤에도 여전히 눌린 상태면 '분리 모드'로 arm.
+  function handleMindmapPointerDown(e: React.PointerEvent) {
+    const el = (e.target as HTMLElement).closest?.(".react-flow__node") as HTMLElement | null;
+    if (!el) return;
+    const id = el.getAttribute("data-id");
+    if (!id) return;
+    if (detachArmRef.current.timer) window.clearTimeout(detachArmRef.current.timer);
+    detachArmRef.current.nodeId = null;
+    setArmedDetachId(null);
+    detachArmRef.current.timer = window.setTimeout(() => {
+      detachArmRef.current.nodeId = id;
+      setArmedDetachId(id);
+    }, DETACH_HOLD_MS);
+  }
+  function cancelDetachArm() {
+    if (detachArmRef.current.timer) {
+      window.clearTimeout(detachArmRef.current.timer);
+      detachArmRef.current.timer = null;
+    }
+    if (!isDraggingNode) {
+      // 드래그 시작 전에 손을 뗀 경우에만 arm 초기화
+      detachArmRef.current.nodeId = null;
+      setArmedDetachId(null);
+    }
+  }
+
   const actions: MindMapActions = {
     updateNodeData,
     addChild,
@@ -510,7 +571,13 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
 
   return (
     <MindMapContext.Provider value={actions}>
-      <div className="paper-texture relative h-full w-full rounded-md border border-stone-300">
+      <div
+        className="paper-texture relative h-full w-full rounded-md border border-stone-300"
+        onPointerDown={handleMindmapPointerDown}
+        onPointerUp={cancelDetachArm}
+        onPointerLeave={cancelDetachArm}
+        onPointerCancel={cancelDetachArm}
+      >
         <div className="absolute left-4 top-4 z-10 flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -544,10 +611,12 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
         </div>
         <ReactFlow
           nodes={
-            hoverAttachId
-              ? nodes.map((n) =>
-                  n.id === hoverAttachId ? { ...n, className: "rf-attach-target" } : n
-                )
+            hoverAttachId || armedDetachId
+              ? nodes.map((n) => {
+                  if (n.id === hoverAttachId) return { ...n, className: "rf-attach-target" };
+                  if (n.id === armedDetachId) return { ...n, className: "rf-detach-armed" };
+                  return n;
+                })
               : nodes
           }
           edges={edges}

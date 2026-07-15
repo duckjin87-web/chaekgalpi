@@ -79,6 +79,17 @@ body {
     transition: box-shadow 120ms ease-out;
   }
 
+  /* 2초 홀드 완료 = 분리 모드 준비됨 (붉은 점선 링 + 살짝 흔들림) */
+  .rf-detach-armed > * {
+    box-shadow: 0 0 0 2px rgba(190, 42, 42, 0.85), 0 0 18px rgba(190, 42, 42, 0.35) !important;
+    animation: rf-armed-shake 0.6s ease-in-out infinite;
+  }
+  @keyframes rf-armed-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-1px); }
+    75% { transform: translateX(1px); }
+  }
+
   /* 잉크 네이비 (매거진 포인트 컬러) */
   .text-ink {
     color: #22335a;

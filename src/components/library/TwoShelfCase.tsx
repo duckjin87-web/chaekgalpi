@@ -13,25 +13,39 @@ function stableHash(s: string): number {
   return Math.abs(h);
 }
 
-function RecommendedSpine({ rec }: { rec: BookRec }) {
+const REC_STYLES: { bg: string; fg: string }[] = [
+  { bg: "#1c2340", fg: "#e5dcbf" },
+  { bg: "#e8dcb5", fg: "#2a2620" },
+  { bg: "#7f8a99", fg: "#f4f0e5" },
+  { bg: "#1a1a1a", fg: "#e5dcbf" },
+  { bg: "#eae4d0", fg: "#2a2620" },
+  { bg: "#3a4258", fg: "#e5dcbf" },
+  { bg: "#b09779", fg: "#2a2620" },
+  { bg: "#2c3a30", fg: "#e5dcbf" },
+];
+
+function RecommendedSpine({ rec, idx }: { rec: BookRec; idx: number }) {
   const h = stableHash(rec.title);
-  const width = 24 + (h % 6);
-  const height = 108 - (h % 10);
-  const rotate = ((h % 5) - 2) * 0.5;
+  const style = REC_STYLES[(h + idx) % REC_STYLES.length];
+  const width = 28 + (h % 5);
+  const height = 122 - (h % 8);
+  const rotate = ((h % 5) - 2) * 0.4;
 
   return (
     <div
-      className="book-spine flex flex-shrink-0 flex-col items-center justify-center"
+      className="book-spine flex flex-shrink-0 flex-col items-center justify-start"
       style={{
         width,
         height,
-        backgroundColor: rec.color,
+        backgroundColor: style.bg,
+        color: style.fg,
         transform: `rotate(${rotate}deg)`,
         transformOrigin: "bottom center",
       }}
-      title={`${rec.title} — ${rec.author} (${rec.genre})`}
+      title={`${rec.title} — ${rec.author} · ${rec.genre}`}
     >
       <span className="book-spine-title">{rec.title}</span>
+      <span className="book-spine-author">{rec.author}</span>
     </div>
   );
 }
@@ -40,35 +54,42 @@ export default function TwoShelfCase({ recentBooks, allBooks }: TwoShelfCaseProp
   const recs = getDailyRecommendations(allBooks);
 
   return (
-    <div className="wood-frame mb-4 rounded-md p-1.5">
-      <div className="flex items-stretch gap-1">
-        {/* 좌측: 최근 한 달 내 읽은 책 */}
-        <div className="wood-panel relative flex-1 rounded-sm pb-3 pl-2 pr-2 pt-1.5">
-          <p className="wood-label mb-1">RECENTLY READ · 최근 한 달</p>
-          <div className="flex min-h-[110px] items-end gap-[3px] overflow-x-auto pb-1">
-            {recentBooks.length > 0 ? (
-              recentBooks.map((b) => <BookSpine key={b.id} book={b} />)
-            ) : (
-              <p className="w-full pt-6 text-center text-[10px] italic text-stone-500/70">
-                아직 완독한 책이 없어요
-              </p>
-            )}
-          </div>
-          <div className="wood-plank absolute inset-x-1 bottom-1 h-2 rounded-sm" />
+    <div className="mb-4">
+      {/* 원목 프레임 — 두꺼운 상판/좌우측판 */}
+      <div className="wood-frame relative rounded-md p-2">
+        {/* 상단 라벨 */}
+        <div className="mb-1 flex items-center justify-between px-1">
+          <span className="wood-label">RECENTLY READ · 최근 한 달</span>
+          <span className="wood-label">TODAY'S PICKS · 오늘의 추천</span>
         </div>
-
-        {/* 목재 구분판 */}
-        <div className="wood-divider w-[3px] rounded-sm" />
-
-        {/* 우측: 오늘의 추천 */}
-        <div className="wood-panel relative flex-1 rounded-sm pb-3 pl-2 pr-2 pt-1.5">
-          <p className="wood-label mb-1">TODAY'S PICKS · 오늘의 추천</p>
-          <div className="flex min-h-[110px] items-end gap-[3px] pb-1">
-            {recs.map((r, i) => (
-              <RecommendedSpine key={`${r.title}-${i}`} rec={r} />
-            ))}
+        <div className="flex items-stretch gap-1.5">
+          {/* 좌측 칸 */}
+          <div className="wood-panel relative flex-1 rounded-sm px-2 pb-3 pt-1">
+            <div className="flex min-h-[130px] items-end gap-[2px] overflow-x-auto pb-2">
+              {recentBooks.length > 0 ? (
+                recentBooks.map((b) => <BookSpine key={b.id} book={b} />)
+              ) : (
+                <p className="w-full pt-10 text-center text-[10px] italic text-stone-700/60">
+                  아직 완독한 책이 없어요
+                </p>
+              )}
+            </div>
+            {/* 바닥 판재 */}
+            <div className="wood-plank absolute inset-x-1 bottom-1 h-[6px]" />
           </div>
-          <div className="wood-plank absolute inset-x-1 bottom-1 h-2 rounded-sm" />
+
+          {/* 세로 구분판 */}
+          <div className="wood-divider w-[10px] rounded-sm" />
+
+          {/* 우측 칸 */}
+          <div className="wood-panel relative flex-1 rounded-sm px-2 pb-3 pt-1">
+            <div className="flex min-h-[130px] items-end gap-[2px] pb-2">
+              {recs.map((r, i) => (
+                <RecommendedSpine key={`${r.title}-${i}`} rec={r} idx={i} />
+              ))}
+            </div>
+            <div className="wood-plank absolute inset-x-1 bottom-1 h-[6px]" />
+          </div>
         </div>
       </div>
     </div>

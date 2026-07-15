@@ -42,83 +42,119 @@ body {
       0 16px 28px -14px rgba(70, 58, 38, 0.35);
   }
 
-  /* 리얼리스틱 목재 책장 프레임 (좌·우 두 칸) */
+  /* 밝은 원목(오크) 책장 프레임 — 두꺼운 프레임 + 세로 결 */
   .wood-frame {
     background:
-      linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 0) 80%, rgba(0, 0, 0, 0.15)),
-      linear-gradient(90deg, #6b4522 0%, #8f5a30 45%, #a56a3c 55%, #8f5a30 65%, #6b4522 100%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='120'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02 0.9' numOctaves='2' seed='4'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)' opacity='0.35'/%3E%3C/svg%3E");
-    background-blend-mode: overlay, normal, multiply;
+      /* 결(가로 방향 나뭇결) */
+      repeating-linear-gradient(
+        90deg,
+        rgba(140, 95, 55, 0.10) 0 46px,
+        rgba(100, 65, 35, 0.14) 46px 48px,
+        rgba(140, 95, 55, 0.10) 48px 92px
+      ),
+      /* 옹이/미세 노이즈 */
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='100'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.015 0.6' numOctaves='2' seed='7'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)' opacity='0.22'/%3E%3C/svg%3E"),
+      linear-gradient(180deg, #dcb381 0%, #cfa26b 50%, #b88652 100%);
+    background-blend-mode: multiply, multiply, normal;
+    border: 1px solid #6d4a22;
+    border-radius: 4px;
     box-shadow:
-      inset 0 2px 0 rgba(255, 220, 180, 0.35),
-      inset 0 -3px 0 rgba(0, 0, 0, 0.35),
-      0 6px 12px -6px rgba(0, 0, 0, 0.4);
-    border: 1px solid #4a2f18;
+      inset 0 1px 0 rgba(255, 235, 195, 0.5),
+      inset 0 -2px 0 rgba(60, 35, 10, 0.35),
+      0 10px 20px -10px rgba(30, 15, 5, 0.45);
   }
+  /* 책장 안쪽 뒷벽 — 살짝 어두운 오크, 위에서 아래로 그림자 */
   .wood-panel {
     background:
-      linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0) 25%, rgba(0, 0, 0, 0) 78%, rgba(0, 0, 0, 0.28)),
-      radial-gradient(120% 90% at 50% 40%, rgba(255, 245, 225, 0.55), rgba(232, 214, 180, 0.4) 60%, rgba(190, 160, 120, 0.4));
-    box-shadow:
-      inset 0 8px 12px -8px rgba(0, 0, 0, 0.55),
-      inset 0 -6px 8px -6px rgba(0, 0, 0, 0.45);
+      linear-gradient(180deg, rgba(30, 15, 5, 0.42) 0%, rgba(30, 15, 5, 0.1) 15%, rgba(30, 15, 5, 0) 45%, rgba(30, 15, 5, 0.12) 90%),
+      repeating-linear-gradient(
+        90deg,
+        rgba(120, 80, 45, 0.10) 0 34px,
+        rgba(85, 55, 25, 0.14) 34px 36px,
+        rgba(120, 80, 45, 0.10) 36px 70px
+      ),
+      linear-gradient(180deg, #b78650 0%, #a37340 100%);
+    background-blend-mode: normal, multiply, normal;
+    box-shadow: inset 0 6px 10px -6px rgba(30, 15, 5, 0.55);
   }
+  /* 세로 구분판 (좌·우 칸 사이) */
   .wood-divider {
-    background: linear-gradient(180deg, #4a2f18, #7a4a20 20%, #4a2f18 80%);
-    box-shadow: 1px 0 0 rgba(255, 220, 180, 0.2), -1px 0 0 rgba(0, 0, 0, 0.4);
+    background:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0) 70%, rgba(0, 0, 0, 0.3) 100%),
+      linear-gradient(180deg, #d5aa78 0%, #b58551 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 235, 195, 0.4);
+    border-radius: 1px;
   }
+  /* 바닥 선반 판재 */
   .wood-plank {
     background:
-      linear-gradient(180deg, rgba(255, 220, 180, 0.2), rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 0.35)),
-      linear-gradient(90deg, #5a3818, #7a4a22 45%, #7a4a22 55%, #5a3818);
-    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.35);
+      linear-gradient(180deg, rgba(255, 225, 175, 0.3) 0%, rgba(0, 0, 0, 0) 25%, rgba(30, 15, 5, 0.5) 100%),
+      linear-gradient(90deg, #a37340 0%, #b58551 50%, #a37340 100%);
+    box-shadow: 0 2px 4px -1px rgba(30, 15, 5, 0.4);
+    border-radius: 1px;
   }
   .wood-label {
-    color: #f7ead0;
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
-    letter-spacing: 0.28em;
+    color: rgba(60, 35, 15, 0.75);
+    letter-spacing: 0.3em;
     font-size: 9px;
+    font-weight: 600;
   }
 
-  /* 리얼리스틱 책등(spine) */
+  /* 리얼리스틱 책등(spine) — 뉴트럴 톤, 가느다란 캡밴드, 미세 결 */
   .book-spine {
     position: relative;
-    color: #fefaf0;
-    padding: 6px 3px;
+    padding: 8px 2px 10px;
     box-shadow:
-      inset 0 0 0 1px rgba(0, 0, 0, 0.2),
-      inset 2px 0 4px rgba(255, 255, 255, 0.14),
-      inset -2px 0 6px rgba(0, 0, 0, 0.35),
-      0 2px 3px -1px rgba(0, 0, 0, 0.35);
-    border-radius: 2px 2px 1px 1px;
+      inset 0 0 0 1px rgba(0, 0, 0, 0.22),
+      inset 2px 0 3px rgba(255, 255, 255, 0.18),
+      inset -2px 0 5px rgba(0, 0, 0, 0.32),
+      1px 3px 4px -2px rgba(20, 10, 5, 0.55);
+    border-radius: 1.5px 1.5px 1px 1px;
   }
+  /* 위·아래 캡밴드 (실제 하드커버 책의 헤드/테일밴드) */
   .book-spine::before,
   .book-spine::after {
     content: "";
     position: absolute;
-    left: 3px;
-    right: 3px;
-    height: 3px;
-    background: rgba(0, 0, 0, 0.25);
+    left: 2px;
+    right: 2px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.18);
     border-radius: 1px;
   }
   .book-spine::before {
-    top: 5px;
+    top: 3px;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
   }
   .book-spine::after {
-    bottom: 5px;
+    bottom: 3px;
+    box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.35);
   }
   .book-spine-title {
     writing-mode: vertical-rl;
     text-orientation: mixed;
     font-family: "Noto Serif KR", Georgia, serif;
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 700;
-    letter-spacing: 0.02em;
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+    letter-spacing: 0.03em;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
     display: block;
-    line-height: 1.15;
+    line-height: 1.1;
     max-height: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .book-spine-author {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-size: 6.5px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    opacity: 0.72;
+    margin-top: 4px;
+    line-height: 1;
+    white-space: nowrap;
+    max-height: 40%;
     overflow: hidden;
   }
 

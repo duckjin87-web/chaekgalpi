@@ -28,12 +28,12 @@ export default function LibraryToolbar({
   const showDateFilters = !!years && years.length > 0 && onYearFilterChange && onMonthFilterChange;
 
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-3">
+    <div className="mb-3 flex flex-wrap items-center gap-2">
       <input
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
-        placeholder="제목, 저자, 태그 검색"
-        className="rounded border border-stone-300 px-3 py-1.5 text-sm"
+        placeholder="검색"
+        className="min-w-0 flex-1 rounded border border-stone-300 px-2 py-1 text-sm"
       />
       <select
         value={statusFilter}
@@ -79,7 +79,7 @@ export default function LibraryToolbar({
       )}
       <button
         onClick={onAddClick}
-        className="bg-ink ml-auto rounded-sm px-3 py-1.5 text-sm tracking-wide text-white shadow"
+        className="bg-ink rounded-sm px-2.5 py-1 text-xs tracking-wide text-white shadow"
       >
         + 책 추가
       </button>

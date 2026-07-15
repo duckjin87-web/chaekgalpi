@@ -5,6 +5,7 @@ import BookCard from "../components/library/BookCard";
 import AddBookModal from "../components/library/AddBookModal";
 import LibraryToolbar from "../components/library/LibraryToolbar";
 import Bookshelf from "../components/library/Bookshelf";
+import TwoShelfCase from "../components/library/TwoShelfCase";
 
 const DATE_FILTER_THRESHOLD = 8;
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
@@ -83,20 +84,20 @@ export default function LibraryPage() {
   const showDateFilters = finishedBooks.length > DATE_FILTER_THRESHOLD;
 
   return (
-    <div className="paper-texture min-h-screen p-6">
-      {/* 매거진 마스트헤드 */}
-      <header className="mb-6">
-        <p className="text-[10px] font-medium tracking-[0.45em] text-ink">READING JOURNAL</p>
+    <div className="paper-texture min-h-screen px-5 pb-6 pt-4">
+      {/* 매거진 마스트헤드 (컴팩트) */}
+      <header className="mb-3">
+        <p className="text-[9px] font-medium tracking-[0.4em] text-ink">READING JOURNAL</p>
         <div className="flex items-end justify-between">
-          <h1 className="font-serif text-5xl font-black leading-none tracking-tight text-ink">
+          <h1 className="font-serif text-4xl font-black leading-none tracking-tight text-ink">
             책갈피
           </h1>
-          <div className="pb-1 text-right text-[10px] leading-relaxed tracking-[0.25em] text-stone-500">
+          <div className="pb-0.5 text-right text-[9px] leading-tight tracking-[0.22em] text-stone-500">
             <p>ONE PAGE,</p>
             <p>MY STORY.</p>
           </div>
         </div>
-        <div className="mt-2 flex items-center justify-between border-t-2 border-ink pt-1.5 text-[10px] tracking-[0.2em] text-stone-500">
+        <div className="mt-1.5 flex items-center justify-between border-t-2 border-ink pt-1 text-[9px] tracking-[0.2em] text-stone-500">
           <span>나의 서재 · ARCHIVE</span>
           <span>
             ISSUE NO. {books.length} · {new Date().getFullYear()}
@@ -116,8 +117,8 @@ export default function LibraryPage() {
         onMonthFilterChange={setMonthFilter}
       />
 
-      {/* 한 달 내에 읽은 책장은 상단에 고정 */}
-      <Bookshelf title="최근 한 달 내에 읽은 책" books={recentFinished} />
+      {/* 한 달 내에 읽은 책 + 오늘의 추천 (두 칸 목재 책장) */}
+      <TwoShelfCase recentBooks={recentFinished} allBooks={books} />
 
       {inProgressBooks.length > 0 && (
         <div className="mb-8">

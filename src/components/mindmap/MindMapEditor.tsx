@@ -170,7 +170,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   const trashRef = useRef<HTMLDivElement>(null);
 
   // 2초 이상 눌렀을 때만 '분리 모드' 활성화 — 짧게 누르고 움직이면 트리 유지
-  const DETACH_HOLD_MS = 2000;
+  const DETACH_HOLD_MS = 1500;
   const detachArmRef = useRef<{ nodeId: string | null; timer: number | null }>({
     nodeId: null,
     timer: null,

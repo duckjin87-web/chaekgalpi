@@ -42,6 +42,86 @@ body {
       0 16px 28px -14px rgba(70, 58, 38, 0.35);
   }
 
+  /* 리얼리스틱 목재 책장 프레임 (좌·우 두 칸) */
+  .wood-frame {
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 0) 80%, rgba(0, 0, 0, 0.15)),
+      linear-gradient(90deg, #6b4522 0%, #8f5a30 45%, #a56a3c 55%, #8f5a30 65%, #6b4522 100%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='120'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.02 0.9' numOctaves='2' seed='4'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23w)' opacity='0.35'/%3E%3C/svg%3E");
+    background-blend-mode: overlay, normal, multiply;
+    box-shadow:
+      inset 0 2px 0 rgba(255, 220, 180, 0.35),
+      inset 0 -3px 0 rgba(0, 0, 0, 0.35),
+      0 6px 12px -6px rgba(0, 0, 0, 0.4);
+    border: 1px solid #4a2f18;
+  }
+  .wood-panel {
+    background:
+      linear-gradient(180deg, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0) 25%, rgba(0, 0, 0, 0) 78%, rgba(0, 0, 0, 0.28)),
+      radial-gradient(120% 90% at 50% 40%, rgba(255, 245, 225, 0.55), rgba(232, 214, 180, 0.4) 60%, rgba(190, 160, 120, 0.4));
+    box-shadow:
+      inset 0 8px 12px -8px rgba(0, 0, 0, 0.55),
+      inset 0 -6px 8px -6px rgba(0, 0, 0, 0.45);
+  }
+  .wood-divider {
+    background: linear-gradient(180deg, #4a2f18, #7a4a20 20%, #4a2f18 80%);
+    box-shadow: 1px 0 0 rgba(255, 220, 180, 0.2), -1px 0 0 rgba(0, 0, 0, 0.4);
+  }
+  .wood-plank {
+    background:
+      linear-gradient(180deg, rgba(255, 220, 180, 0.2), rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 0.35)),
+      linear-gradient(90deg, #5a3818, #7a4a22 45%, #7a4a22 55%, #5a3818);
+    box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.35);
+  }
+  .wood-label {
+    color: #f7ead0;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+    letter-spacing: 0.28em;
+    font-size: 9px;
+  }
+
+  /* 리얼리스틱 책등(spine) */
+  .book-spine {
+    position: relative;
+    color: #fefaf0;
+    padding: 6px 3px;
+    box-shadow:
+      inset 0 0 0 1px rgba(0, 0, 0, 0.2),
+      inset 2px 0 4px rgba(255, 255, 255, 0.14),
+      inset -2px 0 6px rgba(0, 0, 0, 0.35),
+      0 2px 3px -1px rgba(0, 0, 0, 0.35);
+    border-radius: 2px 2px 1px 1px;
+  }
+  .book-spine::before,
+  .book-spine::after {
+    content: "";
+    position: absolute;
+    left: 3px;
+    right: 3px;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 1px;
+  }
+  .book-spine::before {
+    top: 5px;
+  }
+  .book-spine::after {
+    bottom: 5px;
+  }
+  .book-spine-title {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-family: "Noto Serif KR", Georgia, serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+    display: block;
+    line-height: 1.15;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
   /* 마스킹 테이프: 카드/사진을 종이에 붙인 느낌 */
   .tape {
     position: absolute;

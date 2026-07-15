@@ -1,5 +1,5 @@
 // 책갈피 서비스워커 — 설치형(PWA) 지원 + 앱셸 오프라인 캐시(네트워크 우선)
-const CACHE = "chaekgalpi-v11";
+const CACHE = "chaekgalpi-v12";
 const APP_SHELL = ["/", "/index.html", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

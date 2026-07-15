@@ -4,15 +4,16 @@
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-family: "Gowun Dodum", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic",
+    sans-serif;
   background-color: #ece0c2;
   color: #3d382f;
 }
 
-/* 세리프(에디토리얼) 제목용 */
+/* 제목 강조 — Gowun Dodum 은 단일 웨이트라 굵기 대신 자간/크기로 무게감을 표현 */
 .font-serif {
-  font-family: "Noto Serif KR", Georgia, "Times New Roman", "Nanum Myeongjo", "AppleMyungjo",
-    "Apple SD Gothic Neo", serif;
+  font-family: "Gowun Dodum", "Noto Serif KR", "Nanum Myeongjo", "Apple SD Gothic Neo", sans-serif;
+  letter-spacing: -0.01em;
 }
 
 @layer components {

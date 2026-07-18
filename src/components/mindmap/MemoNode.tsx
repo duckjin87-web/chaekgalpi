@@ -3,6 +3,7 @@ import { Handle, Position, NodeResizer, type Node, type NodeProps } from "@xyflo
 import type { MindMapNodeData } from "../../types";
 import { useLibraryStore } from "../../store/useLibraryStore";
 import { useMindMapActions } from "./MindMapContext";
+import { fileToCompressedDataUrl } from "../../lib/compressImage";
 
 type MemoFlowNode = Node<MindMapNodeData, "memo">;
 
@@ -19,6 +20,16 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
   const [draft, setDraft] = useState(data.text);
   const textRef = useRef<HTMLTextAreaElement>(null);
   const pressTimer = useRef<number | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function handleFile(file: File) {
+    try {
+      const url = await fileToCompressedDataUrl(file);
+      updateNodeData(id, { photoUrl: url });
+    } catch {
+      alert("이미지를 불러오지 못했어요.");
+    }
+  }
 
   useEffect(() => {
     if (editing) {
@@ -111,6 +122,34 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
             className="h-3 w-14"
             title="투명도"
           />
+          <div className="h-4 w-px bg-stone-300/60" />
+          <button
+            onClick={() => fileRef.current?.click()}
+            className="rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] text-stone-600 hover:bg-white"
+            title="사진 첨부"
+          >
+            📷
+          </button>
+          {data.photoUrl && (
+            <button
+              onClick={() => updateNodeData(id, { photoUrl: undefined })}
+              className="rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] text-red-500 hover:bg-white"
+              title="사진 제거"
+            >
+              ×
+            </button>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+              e.target.value = "";
+            }}
+          />
         </div>
       )}
 
@@ -142,9 +181,18 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
             placeholder="메모를 입력하세요"
           />
         ) : (
-          <p className="whitespace-pre-wrap break-words leading-snug" style={{ fontSize }}>
-            {data.text || "메모를 입력하세요"}
-          </p>
+          <div className="flex h-full w-full flex-col gap-1">
+            {data.photoUrl && (
+              <img
+                src={data.photoUrl}
+                alt="첨부 사진"
+                className="max-h-[60%] w-full rounded-sm object-cover"
+              />
+            )}
+            <p className="whitespace-pre-wrap break-words leading-snug" style={{ fontSize }}>
+              {data.text || "메모를 입력하세요"}
+            </p>
+          </div>
         )}
       </div>
 

@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useLibraryStore } from "../../store/useLibraryStore";
 import RatingStars from "./RatingStars";
-import QuoteList from "./QuoteList";
+import { fileToCompressedDataUrl } from "../../lib/compressImage";
 
 interface ReviewEditorProps {
   bookId: string;
@@ -14,10 +14,24 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
   const book = useLibraryStore((s) => s.books.find((b) => b.id === bookId));
   const updateBook = useLibraryStore((s) => s.updateBook);
   const [showPreview, setShowPreview] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const content = review?.content ?? "";
   const rating = review?.rating ?? 0;
-  const quotes = review?.quotes ?? [];
+  const photoUrl = review?.photoUrl;
+
+  async function handleFile(file: File) {
+    setUploading(true);
+    try {
+      const url = await fileToCompressedDataUrl(file);
+      upsertReview(bookId, { photoUrl: url });
+    } catch {
+      alert("이미지를 불러오지 못했어요.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const prompts = book?.readingPrompts?.questions ?? [];
   const answers = book?.promptAnswers ?? [];
@@ -88,7 +102,52 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
         )}
       </div>
 
-      <QuoteList quotes={quotes} onChange={(next) => upsertReview(bookId, { quotes: next })} />
+      {/* 인상 깊은 문장에 곁들일 사진 (책 페이지 사진, 밑줄 친 부분 등) */}
+      <div>
+        <div className="flex items-center justify-between">
+          <h3 className="font-serif text-sm font-semibold text-stone-700">사진 첨부</h3>
+          <div className="flex items-center gap-2">
+            {uploading && <span className="text-xs text-stone-500">이미지 처리 중…</span>}
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="rounded-sm border border-stone-300 bg-white px-2.5 py-1 text-xs text-stone-700"
+            >
+              📷 {photoUrl ? "사진 교체" : "사진 추가"}
+            </button>
+            {photoUrl && (
+              <button
+                onClick={() => upsertReview(bookId, { photoUrl: undefined })}
+                className="text-xs text-red-500 hover:underline"
+              >
+                제거
+              </button>
+            )}
+          </div>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) handleFile(f);
+            e.target.value = "";
+          }}
+        />
+        {photoUrl && (
+          <img
+            src={photoUrl}
+            alt="독후감 첨부 사진"
+            className="mt-2 max-h-72 w-full rounded border border-stone-200 object-contain"
+          />
+        )}
+      </div>
+
+      <p className="rounded-md bg-stone-100/60 p-2 text-[11px] text-stone-500">
+        인상 깊은 문장은 상단 <b className="text-ink">「구절」</b> 탭에서 색상·페이지·사진과 함께
+        모을 수 있어요.
+      </p>
     </div>
   );
 }

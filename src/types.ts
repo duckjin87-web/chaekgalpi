@@ -55,6 +55,8 @@ export interface MindMapNodeData extends Record<string, unknown> {
   opacity?: number;
   /** 새로 만든 노드는 바로 편집(타이핑) 상태로 시작 */
   autoEdit?: boolean;
+  /** 인상 깊은 문장에 곁들일 사진 (data URL) */
+  photoUrl?: string;
 }
 
 export interface MindMapNode {
@@ -83,10 +85,16 @@ export interface MindMap {
   layoutPreset?: string;
 }
 
+export type QuoteColor = "yellow" | "blue" | "pink" | "green" | "cream";
+
 export interface Quote {
   id: string;
+  bookId: string;
   text: string;
   page?: string;
+  color: QuoteColor;
+  photoUrl?: string;
+  createdAt: string;
 }
 
 export interface Review {
@@ -94,6 +102,6 @@ export interface Review {
   bookId: string;
   content: string;
   rating: number;
-  quotes: Quote[];
+  photoUrl?: string;
   updatedAt: string;
 }

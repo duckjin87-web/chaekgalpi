@@ -3,10 +3,11 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useLibraryStore } from "../store/useLibraryStore";
 import MindMapEditor from "../components/mindmap/MindMapEditor";
 import ReviewEditor from "../components/review/ReviewEditor";
+import QuotesEditor from "../components/quotes/QuotesEditor";
 import EditBookModal from "../components/library/EditBookModal";
 import type { BookStatus } from "../types";
 
-type Tab = "mindmap" | "review";
+type Tab = "mindmap" | "review" | "quotes";
 
 const statusStyle: Record<BookStatus, string> = {
   읽고싶음: "bg-stone-100 text-stone-600",
@@ -29,7 +30,13 @@ export default function BookDetailPage() {
   const removeBook = useLibraryStore((s) => s.removeBook);
   const updateBook = useLibraryStore((s) => s.updateBook);
   const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState<Tab>(searchParams.get("tab") === "review" ? "review" : "mindmap");
+  const initialTab: Tab =
+    searchParams.get("tab") === "review"
+      ? "review"
+      : searchParams.get("tab") === "quotes"
+        ? "quotes"
+        : "mindmap";
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showInfo, setShowInfo] = useState(true);
   const [descExpanded, setDescExpanded] = useState(false);
@@ -272,6 +279,14 @@ export default function BookDetailPage() {
         >
           독후감
         </button>
+        <button
+          onClick={() => setTab("quotes")}
+          className={`pb-2 font-serif text-sm tracking-wide ${
+            tab === "quotes" ? "border-ink text-ink border-b-2 font-bold" : "text-stone-500"
+          }`}
+        >
+          구절
+        </button>
       </div>
 
       {/* 콘텐츠: 마인드맵은 화면을 꽉 채우고, 위쪽 sticky 헤더/탭으로 정보로 복귀 가능 */}
@@ -280,8 +295,10 @@ export default function BookDetailPage() {
           <div className="h-[calc(100vh-90px)] w-full">
             <MindMapEditor bookId={bookId} />
           </div>
-        ) : (
+        ) : tab === "review" ? (
           <ReviewEditor bookId={bookId} />
+        ) : (
+          <QuotesEditor bookId={bookId} />
         )}
       </div>
     </div>

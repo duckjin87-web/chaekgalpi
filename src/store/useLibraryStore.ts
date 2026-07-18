@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Book, MindMap, MindMapEdge, MindMapNode, Review } from "../types";
-import { seedBooks, seedMindMaps, seedReviews } from "../data/seed";
+import type { Book, MindMap, MindMapEdge, MindMapNode, Quote, Review } from "../types";
+import { seedBooks, seedMindMaps, seedQuotes, seedReviews } from "../data/seed";
 import {
   bookmarkColors,
   memoColors,
@@ -13,6 +13,7 @@ interface LibraryState {
   books: Book[];
   mindMaps: MindMap[];
   reviews: Review[];
+  quotes: Quote[];
   bookmarkPalette: string[];
   memoPalette: string[];
 
@@ -29,6 +30,11 @@ interface LibraryState {
   getReview: (bookId: string) => Review | undefined;
   upsertReview: (bookId: string, patch: Partial<Omit<Review, "id" | "bookId">>) => void;
 
+  getQuotes: (bookId: string) => Quote[];
+  addQuote: (bookId: string, patch: Omit<Quote, "id" | "bookId" | "createdAt">) => Quote;
+  updateQuote: (id: string, patch: Partial<Omit<Quote, "id" | "bookId" | "createdAt">>) => void;
+  removeQuote: (id: string) => void;
+
   reshuffleBookmarkPalette: () => void;
   reshuffleMemoPalette: () => void;
 }
@@ -39,10 +45,11 @@ export const useLibraryStore = create<LibraryState>()(
       books: seedBooks,
       mindMaps: seedMindMaps,
       reviews: seedReviews,
+      quotes: seedQuotes,
       bookmarkPalette: [...bookmarkColors],
       memoPalette: [...memoColors],
 
-      addBook: (book) => {
+      addBook: (book: Omit<Book, "id" | "createdAt">) => {
         const newBook: Book = {
           ...book,
           id: crypto.randomUUID(),
@@ -69,44 +76,50 @@ export const useLibraryStore = create<LibraryState>()(
           edges: [],
           updatedAt: new Date().toISOString(),
         };
-        set((state) => ({
+        set((state: LibraryState) => ({
           books: [...state.books, newBook],
           mindMaps: [...state.mindMaps, newMindMap],
         }));
         return newBook;
       },
 
-      updateBook: (id, patch) =>
-        set((state) => ({
-          books: state.books.map((b) => (b.id === id ? { ...b, ...patch } : b)),
+      updateBook: (id: string, patch: Partial<Book>) =>
+        set((state: LibraryState) => ({
+          books: state.books.map((b: Book) => (b.id === id ? { ...b, ...patch } : b)),
         })),
 
-      removeBook: (id) =>
-        set((state) => ({
-          books: state.books.filter((b) => b.id !== id),
-          mindMaps: state.mindMaps.filter((m) => m.bookId !== id),
-          reviews: state.reviews.filter((r) => r.bookId !== id),
+      removeBook: (id: string) =>
+        set((state: LibraryState) => ({
+          books: state.books.filter((b: Book) => b.id !== id),
+          mindMaps: state.mindMaps.filter((m: MindMap) => m.bookId !== id),
+          reviews: state.reviews.filter((r: Review) => r.bookId !== id),
+          quotes: state.quotes.filter((q: Quote) => q.bookId !== id),
         })),
 
-      getMindMap: (bookId) => get().mindMaps.find((m) => m.bookId === bookId),
+      getMindMap: (bookId: string) =>
+        get().mindMaps.find((m: MindMap) => m.bookId === bookId),
 
-      updateMindMap: (bookId, patch) =>
-        set((state) => ({
-          mindMaps: state.mindMaps.map((m) =>
+      updateMindMap: (
+        bookId: string,
+        patch: { nodes?: MindMapNode[]; edges?: MindMapEdge[]; layoutPreset?: string }
+      ) =>
+        set((state: LibraryState) => ({
+          mindMaps: state.mindMaps.map((m: MindMap) =>
             m.bookId === bookId
               ? { ...m, ...patch, updatedAt: new Date().toISOString() }
               : m
           ),
         })),
 
-      getReview: (bookId) => get().reviews.find((r) => r.bookId === bookId),
+      getReview: (bookId: string) =>
+        get().reviews.find((r: Review) => r.bookId === bookId),
 
-      upsertReview: (bookId, patch) =>
-        set((state) => {
-          const existing = state.reviews.find((r) => r.bookId === bookId);
+      upsertReview: (bookId: string, patch: Partial<Omit<Review, "id" | "bookId">>) =>
+        set((state: LibraryState) => {
+          const existing = state.reviews.find((r: Review) => r.bookId === bookId);
           if (existing) {
             return {
-              reviews: state.reviews.map((r) =>
+              reviews: state.reviews.map((r: Review) =>
                 r.bookId === bookId
                   ? { ...r, ...patch, updatedAt: new Date().toISOString() }
                   : r
@@ -118,12 +131,40 @@ export const useLibraryStore = create<LibraryState>()(
             bookId,
             content: "",
             rating: 0,
-            quotes: [],
             updatedAt: new Date().toISOString(),
             ...patch,
           };
           return { reviews: [...state.reviews, newReview] };
         }),
+
+      getQuotes: (bookId: string) =>
+        get()
+          .quotes.filter((q: Quote) => q.bookId === bookId)
+          .sort(
+            (a: Quote, b: Quote) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          ),
+
+      addQuote: (bookId: string, patch: Omit<Quote, "id" | "bookId" | "createdAt">) => {
+        const newQuote: Quote = {
+          id: crypto.randomUUID(),
+          bookId,
+          createdAt: new Date().toISOString(),
+          ...patch,
+        };
+        set((state: LibraryState) => ({ quotes: [...state.quotes, newQuote] }));
+        return newQuote;
+      },
+
+      updateQuote: (id: string, patch: Partial<Omit<Quote, "id" | "bookId" | "createdAt">>) =>
+        set((state: LibraryState) => ({
+          quotes: state.quotes.map((q: Quote) => (q.id === id ? { ...q, ...patch } : q)),
+        })),
+
+      removeQuote: (id: string) =>
+        set((state: LibraryState) => ({
+          quotes: state.quotes.filter((q: Quote) => q.id !== id),
+        })),
 
       reshuffleBookmarkPalette: () => set({ bookmarkPalette: shuffleBookmarkPalette() }),
       reshuffleMemoPalette: () => set({ memoPalette: shuffleMemoPalette() }),

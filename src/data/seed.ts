@@ -1,4 +1,6 @@
-import type { Book, MindMap, Review } from "../types";
+import type { Book, MindMap, Quote, Review } from "../types";
+
+export const seedQuotes: Quote[] = [];
 
 export const seedBooks: Book[] = [
   {
@@ -48,7 +50,6 @@ export const seedReviews: Review[] = [
     bookId: "b2",
     content: "짧지만 깊은 울림을 주는 이야기.",
     rating: 5,
-    quotes: [{ id: "q1", text: "중요한 것은 눈에 보이지 않아." }],
     updatedAt: new Date().toISOString(),
   },
 ];

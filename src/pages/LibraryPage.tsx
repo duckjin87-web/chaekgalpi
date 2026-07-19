@@ -4,11 +4,10 @@ import type { Book, BookStatus } from "../types";
 import BookCard from "../components/library/BookCard";
 import AddBookModal from "../components/library/AddBookModal";
 import LibraryToolbar from "../components/library/LibraryToolbar";
-import Bookshelf from "../components/library/Bookshelf";
-import TwoShelfCase from "../components/library/TwoShelfCase";
+import ThreeTierShelf from "../components/library/ThreeTierShelf";
 
 const DATE_FILTER_THRESHOLD = 8;
-const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+const SIX_MONTHS_MS = 6 * 30 * 24 * 60 * 60 * 1000;
 
 function readDate(book: Book): Date {
   return new Date(book.finishDate ?? book.createdAt);
@@ -43,7 +42,6 @@ export default function LibraryPage() {
   const mindMaps = useLibraryStore((s) => s.mindMaps);
   const reviews = useLibraryStore((s) => s.reviews);
 
-  // 마인드맵/독후감을 최근에 수정한 책이 맨 앞(좌측)에 오도록 정렬
   const inProgressBooks = useMemo(() => {
     const lastTouched = (b: Book): number => {
       const mm = mindMaps.find((m) => m.bookId === b.id)?.updatedAt;
@@ -75,17 +73,16 @@ export default function LibraryPage() {
 
   const now = Date.now();
   const recentFinished = dateFilteredFinishedBooks.filter(
-    (b) => now - readDate(b).getTime() <= ONE_MONTH_MS
+    (b) => now - readDate(b).getTime() <= SIX_MONTHS_MS
   );
   const olderFinished = dateFilteredFinishedBooks.filter(
-    (b) => now - readDate(b).getTime() > ONE_MONTH_MS
+    (b) => now - readDate(b).getTime() > SIX_MONTHS_MS
   );
 
   const showDateFilters = finishedBooks.length > DATE_FILTER_THRESHOLD;
 
   return (
     <div className="paper-texture min-h-screen px-5 pb-6 pt-4">
-      {/* 매거진 마스트헤드 (컴팩트) */}
       <header className="mb-3">
         <p className="text-[9px] font-medium tracking-[0.4em] text-ink">READING JOURNAL</p>
         <div className="flex items-end justify-between">
@@ -117,11 +114,9 @@ export default function LibraryPage() {
         onMonthFilterChange={setMonthFilter}
       />
 
-      {/* 한 달 내에 읽은 책 + 오늘의 추천 (두 칸 목재 책장) */}
-      <TwoShelfCase recentBooks={recentFinished} allBooks={books} />
-
+      {/* 상단: 읽는 중 · 읽고 싶은 책 (카드 = 표지 + 상태만) */}
       {inProgressBooks.length > 0 && (
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="mb-1 flex items-baseline gap-2">
             <p className="font-serif text-base font-bold text-ink">읽는 중 · 읽고 싶은 책</p>
             <span className="text-[9px] tracking-[0.3em] text-stone-400">ON MY DESK</span>
@@ -134,11 +129,16 @@ export default function LibraryPage() {
         </div>
       )}
 
-      <Bookshelf title="그 이전에 읽은 책" books={olderFinished} compact />
-
       {filteredBooks.length === 0 && (
-        <p className="text-sm text-stone-400">조건에 맞는 책이 없어요.</p>
+        <p className="mb-4 text-sm text-stone-400">조건에 맞는 책이 없어요.</p>
       )}
+
+      {/* 하단: 3단 목재 책장 */}
+      <ThreeTierShelf
+        recentBooks={recentFinished}
+        oldBooks={olderFinished}
+        allBooks={books}
+      />
 
       {showAddModal && (
         <AddBookModal onClose={() => setShowAddModal(false)} onAdd={addBook} />

@@ -1,10 +1,11 @@
 import { useRef, useState } from "react";
-import { useLibraryStore } from "../../store/useLibraryStore";
-import type { QuoteColor } from "../../types";
 import { fileToCompressedDataUrl } from "../../lib/compressImage";
+import type { Quote, QuoteColor } from "../../types";
+import PhotoLightbox from "../common/PhotoLightbox";
 
-interface QuotesEditorProps {
-  bookId: string;
+interface QuoteListProps {
+  quotes: Quote[];
+  onChange: (quotes: Quote[]) => void;
 }
 
 const COLOR_STYLES: Record<QuoteColor, { bar: string; bg: string; label: string }> = {
@@ -15,7 +16,6 @@ const COLOR_STYLES: Record<QuoteColor, { bar: string; bg: string; label: string 
   cream: { bar: "bg-stone-300", bg: "bg-stone-50", label: "일반" },
 };
 
-/** 붙여넣은 텍스트에서 페이지·진행률 자동 추출 */
 function extractPage(text: string): string | undefined {
   const patterns: RegExp[] = [
     /(\d{1,3}%\s*\(\s*\d+\s*p\s*\))/i,
@@ -32,25 +32,16 @@ function extractPage(text: string): string | undefined {
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  const yy = String(d.getFullYear()).slice(2);
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${yy}.${mm}.${dd} ${hh}:${mi}`;
+  return `${String(d.getFullYear()).slice(2)}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
-export default function QuotesEditor({ bookId }: QuotesEditorProps) {
-  const quotes = useLibraryStore((s) => s.getQuotes(bookId));
-  const addQuote = useLibraryStore((s) => s.addQuote);
-  const updateQuote = useLibraryStore((s) => s.updateQuote);
-  const removeQuote = useLibraryStore((s) => s.removeQuote);
-
+export default function QuoteList({ quotes, onChange }: QuoteListProps) {
   const [text, setText] = useState("");
   const [page, setPage] = useState("");
   const [color, setColor] = useState<QuoteColor>("yellow");
   const [photoUrl, setPhotoUrl] = useState<string | undefined>();
   const [uploading, setUploading] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   async function handlePaste() {
@@ -68,8 +59,7 @@ export default function QuotesEditor({ bookId }: QuotesEditorProps) {
   async function handleFile(file: File) {
     setUploading(true);
     try {
-      const url = await fileToCompressedDataUrl(file);
-      setPhotoUrl(url);
+      setPhotoUrl(await fileToCompressedDataUrl(file));
     } catch {
       alert("이미지를 불러오지 못했어요.");
     } finally {
@@ -77,19 +67,38 @@ export default function QuotesEditor({ bookId }: QuotesEditorProps) {
     }
   }
 
-  function handleAdd() {
+  function add() {
     const trimmed = text.trim();
     if (!trimmed) return;
-    addQuote(bookId, { text: trimmed, page: page.trim() || undefined, color, photoUrl });
+    const quote: Quote = {
+      id: crypto.randomUUID(),
+      bookId: "",
+      text: trimmed,
+      page: page.trim() || undefined,
+      color,
+      photoUrl,
+      createdAt: new Date().toISOString(),
+    };
+    onChange([quote, ...quotes]);
     setText("");
     setPage("");
     setPhotoUrl(undefined);
   }
 
+  function remove(id: string) {
+    if (!confirm("이 구절을 삭제할까요?")) return;
+    onChange(quotes.filter((q) => q.id !== id));
+  }
+
+  function setQuoteColor(id: string, next: QuoteColor) {
+    onChange(quotes.map((q) => (q.id === id ? { ...q, color: next } : q)));
+  }
+
   return (
-    <div className="space-y-4">
-      {/* 입력 카드 */}
-      <div className="rounded-lg border border-stone-200 bg-white/70 p-3 shadow-sm">
+    <div>
+      <h3 className="font-serif text-sm font-semibold text-stone-700">구절·하이라이트</h3>
+
+      <div className="mt-2 rounded-lg border border-stone-200 bg-white/70 p-3 shadow-sm">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <button
             onClick={handlePaste}
@@ -119,9 +128,8 @@ export default function QuotesEditor({ bookId }: QuotesEditorProps) {
               <button
                 key={c}
                 onClick={() => setColor(c)}
-                className={`h-5 w-5 rounded-full border ${COLOR_STYLES[c].bar} ${color === c ? "ring-2 ring-offset-1 ring-stone-500" : "border-stone-300"}`}
+                className={`h-5 w-5 rounded-full ${COLOR_STYLES[c].bar} ${color === c ? "ring-2 ring-stone-500 ring-offset-1" : "border border-stone-300"}`}
                 title={COLOR_STYLES[c].label}
-                aria-label={COLOR_STYLES[c].label}
               />
             ))}
           </div>
@@ -137,71 +145,69 @@ export default function QuotesEditor({ bookId }: QuotesEditorProps) {
           <input
             value={page}
             onChange={(e) => setPage(e.target.value)}
-            placeholder="페이지/진행률 (예: 94% (530p) 또는 p.325)"
+            placeholder="페이지/진행률"
             className="min-w-0 flex-1 rounded border border-stone-300 px-2 py-1 text-xs"
           />
           {photoUrl && (
-            <div className="flex items-center gap-1">
-              <img src={photoUrl} alt="첨부 사진" className="h-10 w-10 rounded object-cover" />
-              <button
-                onClick={() => setPhotoUrl(undefined)}
-                className="text-xs text-red-500 hover:underline"
-              >
+            <>
+              <img
+                src={photoUrl}
+                alt=""
+                className="h-10 w-10 cursor-zoom-in rounded object-cover"
+                onClick={() => setLightbox(photoUrl)}
+              />
+              <button onClick={() => setPhotoUrl(undefined)} className="text-xs text-red-500">
                 제거
               </button>
-            </div>
+            </>
           )}
           {uploading && <span className="text-xs text-stone-500">이미지 처리 중…</span>}
           <button
-            onClick={handleAdd}
+            onClick={add}
             disabled={!text.trim()}
-            className="bg-ink rounded-sm px-3 py-1 text-xs tracking-wide text-white shadow disabled:opacity-40"
+            className="bg-ink rounded-sm px-3 py-1 text-xs text-white shadow disabled:opacity-40"
           >
             추가
           </button>
         </div>
       </div>
 
-      {/* 카드 리스트 (첨부한 e-book 앱 스타일) */}
       {quotes.length === 0 ? (
-        <p className="pt-4 text-center text-xs italic text-stone-400">
+        <p className="pt-3 text-center text-xs italic text-stone-400">
           저장한 구절이 없어요. 위에서 첫 문장을 담아보세요.
         </p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="mt-3 space-y-2">
           {quotes.map((q) => {
-            const style = COLOR_STYLES[q.color];
+            const style = COLOR_STYLES[q.color] ?? COLOR_STYLES.cream;
             return (
               <li
                 key={q.id}
                 className={`relative flex gap-2 rounded-md border-l-4 ${style.bar} ${style.bg} p-3 shadow-sm`}
               >
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="whitespace-pre-wrap text-sm leading-relaxed text-stone-800">
                     {q.text}
                   </p>
-                  <div className="mt-2 flex items-center gap-2 text-[10px] text-stone-500">
-                    {q.page && (
-                      <span className="rounded bg-white/60 px-1.5 py-0.5">📖 {q.page}</span>
-                    )}
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] text-stone-500">
+                    {q.page && <span className="rounded bg-white/60 px-1.5 py-0.5">📖 {q.page}</span>}
                     <span>{formatDate(q.createdAt)}</span>
-                    <span className="ml-1">· {style.label}</span>
+                    <span>· {style.label}</span>
                   </div>
                 </div>
                 {q.photoUrl && (
                   <img
                     src={q.photoUrl}
                     alt="구절 사진"
-                    className="h-16 w-16 flex-shrink-0 rounded object-cover"
-                    onClick={() => window.open(q.photoUrl, "_blank")}
+                    className="h-16 w-16 flex-shrink-0 cursor-zoom-in rounded object-cover"
+                    onClick={() => setLightbox(q.photoUrl!)}
                   />
                 )}
                 <div className="flex flex-col items-end gap-1">
                   <select
                     value={q.color}
-                    onChange={(e) => updateQuote(q.id, { color: e.target.value as QuoteColor })}
+                    onChange={(e) => setQuoteColor(q.id, e.target.value as QuoteColor)}
                     className="rounded border border-stone-200 bg-white/60 px-1 py-0.5 text-[10px]"
-                    title="색상 변경"
                   >
                     {(Object.keys(COLOR_STYLES) as QuoteColor[]).map((c) => (
                       <option key={c} value={c}>
@@ -209,12 +215,7 @@ export default function QuotesEditor({ bookId }: QuotesEditorProps) {
                       </option>
                     ))}
                   </select>
-                  <button
-                    onClick={() => {
-                      if (confirm("이 구절을 삭제할까요?")) removeQuote(q.id);
-                    }}
-                    className="text-[10px] text-red-400 hover:underline"
-                  >
+                  <button onClick={() => remove(q.id)} className="text-[10px] text-red-400">
                     삭제
                   </button>
                 </div>
@@ -223,6 +224,8 @@ export default function QuotesEditor({ bookId }: QuotesEditorProps) {
           })}
         </ul>
       )}
+
+      {lightbox && <PhotoLightbox src={lightbox} onClose={() => setLightbox(null)} />}
     </div>
   );
 }

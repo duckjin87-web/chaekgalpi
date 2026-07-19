@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Book, MindMap, MindMapEdge, MindMapNode, Quote, Review } from "../types";
-import { seedBooks, seedMindMaps, seedQuotes, seedReviews } from "../data/seed";
+import type { Book, MindMap, MindMapEdge, MindMapNode, Review } from "../types";
+import { seedBooks, seedMindMaps, seedReviews } from "../data/seed";
 import {
   bookmarkColors,
   memoColors,
@@ -13,7 +13,6 @@ interface LibraryState {
   books: Book[];
   mindMaps: MindMap[];
   reviews: Review[];
-  quotes: Quote[];
   bookmarkPalette: string[];
   memoPalette: string[];
 
@@ -30,11 +29,6 @@ interface LibraryState {
   getReview: (bookId: string) => Review | undefined;
   upsertReview: (bookId: string, patch: Partial<Omit<Review, "id" | "bookId">>) => void;
 
-  getQuotes: (bookId: string) => Quote[];
-  addQuote: (bookId: string, patch: Omit<Quote, "id" | "bookId" | "createdAt">) => Quote;
-  updateQuote: (id: string, patch: Partial<Omit<Quote, "id" | "bookId" | "createdAt">>) => void;
-  removeQuote: (id: string) => void;
-
   reshuffleBookmarkPalette: () => void;
   reshuffleMemoPalette: () => void;
 }
@@ -45,7 +39,6 @@ export const useLibraryStore = create<LibraryState>()(
       books: seedBooks,
       mindMaps: seedMindMaps,
       reviews: seedReviews,
-      quotes: seedQuotes,
       bookmarkPalette: [...bookmarkColors],
       memoPalette: [...memoColors],
 
@@ -55,7 +48,6 @@ export const useLibraryStore = create<LibraryState>()(
           id: crypto.randomUUID(),
           createdAt: new Date().toISOString(),
         };
-        // 책 생성 시 책 제목으로 된 '제목' 노드를 필수로 생성
         const titleNode: MindMapNode = {
           id: crypto.randomUUID(),
           type: "bookmark",
@@ -93,7 +85,6 @@ export const useLibraryStore = create<LibraryState>()(
           books: state.books.filter((b: Book) => b.id !== id),
           mindMaps: state.mindMaps.filter((m: MindMap) => m.bookId !== id),
           reviews: state.reviews.filter((r: Review) => r.bookId !== id),
-          quotes: state.quotes.filter((q: Quote) => q.bookId !== id),
         })),
 
       getMindMap: (bookId: string) =>
@@ -131,40 +122,12 @@ export const useLibraryStore = create<LibraryState>()(
             bookId,
             content: "",
             rating: 0,
+            quotes: [],
             updatedAt: new Date().toISOString(),
             ...patch,
           };
           return { reviews: [...state.reviews, newReview] };
         }),
-
-      getQuotes: (bookId: string) =>
-        get()
-          .quotes.filter((q: Quote) => q.bookId === bookId)
-          .sort(
-            (a: Quote, b: Quote) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          ),
-
-      addQuote: (bookId: string, patch: Omit<Quote, "id" | "bookId" | "createdAt">) => {
-        const newQuote: Quote = {
-          id: crypto.randomUUID(),
-          bookId,
-          createdAt: new Date().toISOString(),
-          ...patch,
-        };
-        set((state: LibraryState) => ({ quotes: [...state.quotes, newQuote] }));
-        return newQuote;
-      },
-
-      updateQuote: (id: string, patch: Partial<Omit<Quote, "id" | "bookId" | "createdAt">>) =>
-        set((state: LibraryState) => ({
-          quotes: state.quotes.map((q: Quote) => (q.id === id ? { ...q, ...patch } : q)),
-        })),
-
-      removeQuote: (id: string) =>
-        set((state: LibraryState) => ({
-          quotes: state.quotes.filter((q: Quote) => q.id !== id),
-        })),
 
       reshuffleBookmarkPalette: () => set({ bookmarkPalette: shuffleBookmarkPalette() }),
       reshuffleMemoPalette: () => set({ memoPalette: shuffleMemoPalette() }),

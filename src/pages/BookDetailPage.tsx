@@ -3,11 +3,10 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useLibraryStore } from "../store/useLibraryStore";
 import MindMapEditor from "../components/mindmap/MindMapEditor";
 import ReviewEditor from "../components/review/ReviewEditor";
-import QuotesEditor from "../components/quotes/QuotesEditor";
 import EditBookModal from "../components/library/EditBookModal";
 import type { BookStatus } from "../types";
 
-type Tab = "mindmap" | "review" | "quotes";
+type Tab = "mindmap" | "review";
 
 const statusStyle: Record<BookStatus, string> = {
   읽고싶음: "bg-stone-100 text-stone-600",
@@ -30,13 +29,7 @@ export default function BookDetailPage() {
   const removeBook = useLibraryStore((s) => s.removeBook);
   const updateBook = useLibraryStore((s) => s.updateBook);
   const [searchParams] = useSearchParams();
-  const initialTab: Tab =
-    searchParams.get("tab") === "review"
-      ? "review"
-      : searchParams.get("tab") === "quotes"
-        ? "quotes"
-        : "mindmap";
-  const [tab, setTab] = useState<Tab>(initialTab);
+  const [tab, setTab] = useState<Tab>(searchParams.get("tab") === "review" ? "review" : "mindmap");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showInfo, setShowInfo] = useState(true);
   const [descExpanded, setDescExpanded] = useState(false);
@@ -97,16 +90,16 @@ export default function BookDetailPage() {
               {/* 뒤에 깔린 잉크색 종이 레이어 */}
               <div className="absolute inset-0 translate-x-1 translate-y-1.5 rotate-[1.2deg] rounded-sm bg-[#22335a]/85" />
               <div className="paper-card relative flex gap-4 rounded-sm p-4">
-                <div className="relative flex-shrink-0">
+                <div className="relative w-[110px] flex-shrink-0">
                   <span className="tape tape-tl" />
                   {book.coverUrl ? (
                     <img
                       src={book.coverUrl}
                       alt={book.title}
-                      className="h-36 w-[104px] object-cover shadow-md"
+                      className="block w-full rounded-sm object-contain shadow-md"
                     />
                   ) : (
-                    <div className="flex h-36 w-[104px] items-center justify-center bg-gradient-to-br from-stone-300 to-stone-400 text-3xl shadow-md">
+                    <div className="flex aspect-[3/4] w-full items-center justify-center rounded-sm bg-gradient-to-br from-stone-300 to-stone-400 text-3xl shadow-md">
                       📖
                     </div>
                   )}
@@ -279,14 +272,6 @@ export default function BookDetailPage() {
         >
           독후감
         </button>
-        <button
-          onClick={() => setTab("quotes")}
-          className={`pb-2 font-serif text-sm tracking-wide ${
-            tab === "quotes" ? "border-ink text-ink border-b-2 font-bold" : "text-stone-500"
-          }`}
-        >
-          구절
-        </button>
       </div>
 
       {/* 콘텐츠: 마인드맵은 화면을 꽉 채우고, 위쪽 sticky 헤더/탭으로 정보로 복귀 가능 */}
@@ -295,10 +280,8 @@ export default function BookDetailPage() {
           <div className="h-[calc(100vh-90px)] w-full">
             <MindMapEditor bookId={bookId} />
           </div>
-        ) : tab === "review" ? (
-          <ReviewEditor bookId={bookId} />
         ) : (
-          <QuotesEditor bookId={bookId} />
+          <ReviewEditor bookId={bookId} />
         )}
       </div>
     </div>

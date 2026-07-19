@@ -89,7 +89,7 @@ export type QuoteColor = "yellow" | "blue" | "pink" | "green" | "cream";
 
 export interface Quote {
   id: string;
-  bookId: string;
+  bookId?: string;
   text: string;
   page?: string;
   color: QuoteColor;
@@ -103,5 +103,6 @@ export interface Review {
   content: string;
   rating: number;
   photoUrl?: string;
+  quotes: Quote[];
   updatedAt: string;
 }

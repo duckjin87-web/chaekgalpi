@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
+import { Handle, NodeResizer, Position, type Node, type NodeProps } from "@xyflow/react";
 import type { MindMapNodeData } from "../../types";
 import { nodeLevelStyle } from "../../theme";
 import { useMindMapActions } from "./MindMapContext";
 import InlineNodeEditor from "./InlineNodeEditor";
+import { fileToCompressedDataUrl } from "../../lib/compressImage";
 
 type BookmarkFlowNode = Node<MindMapNodeData, "bookmark">;
 
@@ -18,6 +19,7 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
   const [draft, setDraft] = useState(data.text);
   const pressTimer = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editing) {
@@ -28,7 +30,6 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 
-  // 새로 만든 노드는 바로 편집 상태로 시작
   const didAutoEdit = useRef(false);
   useEffect(() => {
     if (data.autoEdit && !didAutoEdit.current) {
@@ -43,7 +44,6 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
     setEditing(false);
     if (draft !== data.text) updateNodeData(id, { text: draft });
   }
-
   function startPress() {
     pressTimer.current = window.setTimeout(() => setEditing(true), 500);
   }
@@ -53,16 +53,23 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
       pressTimer.current = null;
     }
   }
+  async function handleFile(file: File) {
+    try {
+      const url = await fileToCompressedDataUrl(file);
+      updateNodeData(id, { photoUrl: url });
+    } catch {
+      alert("이미지를 불러오지 못했어요.");
+    }
+  }
 
   return (
     <div
-      className={`relative text-stone-800 shadow-md transition-shadow ${nodeShapeClass} ${
+      className={`relative h-full w-full text-stone-800 shadow-md transition-shadow ${nodeShapeClass} ${
         selected ? "shadow-lg" : ""
       }`}
       style={{
         backgroundColor: data.color,
         minWidth: style.minWidth,
-        maxWidth: 260,
         padding: style.padding,
         borderWidth: style.borderWidth,
         borderStyle: "solid",
@@ -77,7 +84,23 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
       onPointerMove={cancelPress}
       onPointerLeave={cancelPress}
     >
+      <NodeResizer
+        isVisible={selected}
+        minWidth={style.minWidth}
+        minHeight={40}
+        lineClassName="!border-emerald-500"
+        handleClassName="!h-2.5 !w-2.5 !rounded-sm !border-white !bg-emerald-600"
+      />
       <Handle type="target" position={Position.Left} className={handleClass} />
+
+      {data.photoUrl && (
+        <img
+          src={data.photoUrl}
+          alt="첨부 사진"
+          className="mb-1 block max-h-40 w-full rounded-sm object-contain"
+        />
+      )}
+
       {editing ? (
         <input
           ref={inputRef}
@@ -105,7 +128,47 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
           {data.text}
         </p>
       )}
+
       <Handle type="source" position={Position.Right} className={handleClass} />
+
+      {/* 사진 첨부 버튼 (선택 시) */}
+      {selected && (
+        <>
+          <button
+            className="nodrag absolute -top-2.5 -right-2.5 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-white/95 text-xs shadow"
+            onClick={(e) => {
+              e.stopPropagation();
+              fileRef.current?.click();
+            }}
+            title="사진 첨부"
+          >
+            📷
+          </button>
+          {data.photoUrl && (
+            <button
+              className="nodrag absolute -top-2.5 right-4 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-white/95 text-xs text-red-500 shadow"
+              onClick={(e) => {
+                e.stopPropagation();
+                updateNodeData(id, { photoUrl: undefined });
+              }}
+              title="사진 제거"
+            >
+              ×
+            </button>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+              e.target.value = "";
+            }}
+          />
+        </>
+      )}
 
       {/* + 버튼 → 연결된 자식 노드 생성 */}
       <button

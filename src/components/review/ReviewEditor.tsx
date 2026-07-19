@@ -2,6 +2,8 @@ import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useLibraryStore } from "../../store/useLibraryStore";
 import RatingStars from "./RatingStars";
+import QuoteList from "./QuoteList";
+import PhotoLightbox from "../common/PhotoLightbox";
 import { fileToCompressedDataUrl } from "../../lib/compressImage";
 
 interface ReviewEditorProps {
@@ -15,11 +17,23 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
   const updateBook = useLibraryStore((s) => s.updateBook);
   const [showPreview, setShowPreview] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const content = review?.content ?? "";
   const rating = review?.rating ?? 0;
   const photoUrl = review?.photoUrl;
+  const quotes = review?.quotes ?? [];
+
+  const prompts = book?.readingPrompts?.questions ?? [];
+  const answers = book?.promptAnswers ?? [];
+
+  function setAnswer(index: number, value: string) {
+    const next = [...answers];
+    while (next.length < prompts.length) next.push("");
+    next[index] = value;
+    updateBook(bookId, { promptAnswers: next });
+  }
 
   async function handleFile(file: File) {
     setUploading(true);
@@ -33,38 +47,36 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
     }
   }
 
-  const prompts = book?.readingPrompts?.questions ?? [];
-  const answers = book?.promptAnswers ?? [];
-
-  function setAnswer(index: number, value: string) {
-    const next = [...answers];
-    while (next.length < prompts.length) next.push("");
-    next[index] = value;
-    updateBook(bookId, { promptAnswers: next });
-  }
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* 서평 생각거리 — 별도 카드, 답변 칸 크게 (기존 2배 이상) */}
       {prompts.length > 0 && (
-        <div className="space-y-3 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
-          <p className="text-xs font-medium text-emerald-800">📖 서평으로 보는 생각거리</p>
-          {prompts.map((q, i) => (
-            <div key={i} className="space-y-1">
-              <p className="text-sm text-stone-700">
-                <span className="mr-1 font-medium text-emerald-800">Q{i + 1}.</span>
-                {q}
-              </p>
-              <textarea
-                className="w-full rounded border border-stone-200 bg-white p-2 text-sm leading-relaxed"
-                rows={2}
-                value={answers[i] ?? ""}
-                onChange={(e) => setAnswer(i, e.target.value)}
-                placeholder="생각을 간략히 적어보세요…"
-              />
-            </div>
-          ))}
+        <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/60 p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-lg">📖</span>
+            <p className="font-serif text-sm font-bold text-emerald-900">
+              서평으로 보는 생각거리
+            </p>
+          </div>
+          <div className="space-y-4">
+            {prompts.map((q, i) => (
+              <div key={i} className="rounded-lg bg-white/70 p-3">
+                <p className="text-sm leading-relaxed text-stone-800">
+                  <span className="mr-1 font-bold text-emerald-800">Q{i + 1}.</span>
+                  {q}
+                </p>
+                <textarea
+                  className="mt-2 w-full resize-y rounded border border-stone-200 bg-white p-3 text-sm leading-relaxed"
+                  rows={6}
+                  value={answers[i] ?? ""}
+                  onChange={(e) => setAnswer(i, e.target.value)}
+                  placeholder="생각을 자유롭게 적어보세요. 오른쪽 아래 모서리로 크기 조절 가능해요."
+                />
+              </div>
+            ))}
+          </div>
           {book?.readingPrompts?.coreTheme && (
-            <p className="border-t border-emerald-100 pt-2 text-sm text-stone-600">
+            <p className="mt-3 border-t border-emerald-200 pt-2 text-sm text-stone-600">
               <span className="mr-1 font-medium text-amber-700">핵심 주제.</span>
               {book.readingPrompts.coreTheme}
             </p>
@@ -72,11 +84,13 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
         </div>
       )}
 
+      {/* 별점 */}
       <div>
         <h3 className="font-serif text-sm font-semibold text-stone-700">별점</h3>
         <RatingStars value={rating} onChange={(value) => upsertReview(bookId, { rating: value })} />
       </div>
 
+      {/* 독후감 본문 */}
       <div>
         <div className="flex items-center justify-between">
           <h3 className="font-serif text-sm font-semibold text-stone-700">독후감</h3>
@@ -88,13 +102,13 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
           </button>
         </div>
         {showPreview ? (
-          <div className="prose prose-sm mt-2 min-h-[160px] rounded border border-stone-200 bg-white p-3">
+          <div className="prose prose-sm mt-2 min-h-[200px] rounded border border-stone-200 bg-white p-3">
             <ReactMarkdown>{content || "*아직 작성한 내용이 없어요.*"}</ReactMarkdown>
           </div>
         ) : (
           <textarea
-            className="mt-2 w-full rounded border border-stone-300 p-3 text-sm leading-relaxed"
-            rows={10}
+            className="mt-2 w-full resize-y rounded border border-stone-300 p-3 text-sm leading-relaxed"
+            rows={12}
             value={content}
             onChange={(e) => upsertReview(bookId, { content: e.target.value })}
             placeholder="마크다운으로 자유롭게 독후감을 작성해보세요."
@@ -102,10 +116,10 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
         )}
       </div>
 
-      {/* 인상 깊은 문장에 곁들일 사진 (책 페이지 사진, 밑줄 친 부분 등) */}
+      {/* 사진 첨부 (독후감 대표 사진) */}
       <div>
         <div className="flex items-center justify-between">
-          <h3 className="font-serif text-sm font-semibold text-stone-700">사진 첨부</h3>
+          <h3 className="font-serif text-sm font-semibold text-stone-700">대표 사진</h3>
           <div className="flex items-center gap-2">
             {uploading && <span className="text-xs text-stone-500">이미지 처리 중…</span>}
             <button
@@ -139,15 +153,19 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
           <img
             src={photoUrl}
             alt="독후감 첨부 사진"
-            className="mt-2 max-h-72 w-full rounded border border-stone-200 object-contain"
+            className="mt-2 max-h-72 w-full cursor-zoom-in rounded border border-stone-200 object-contain"
+            onClick={() => setLightbox(photoUrl)}
           />
         )}
       </div>
 
-      <p className="rounded-md bg-stone-100/60 p-2 text-[11px] text-stone-500">
-        인상 깊은 문장은 상단 <b className="text-ink">「구절」</b> 탭에서 색상·페이지·사진과 함께
-        모을 수 있어요.
-      </p>
+      {/* 구절·하이라이트 (독후감에 포함) */}
+      <QuoteList
+        quotes={quotes}
+        onChange={(next) => upsertReview(bookId, { quotes: next })}
+      />
+
+      {lightbox && <PhotoLightbox src={lightbox} onClose={() => setLightbox(null)} />}
     </div>
   );
 }

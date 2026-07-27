@@ -63,31 +63,68 @@ function randomFrom(arr: string[]): string {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+/** 새 노드는 부모(+버튼) 바로 근처에 스폰. 후보 위치 중 다른 노드와 겹치지 않는 첫 자리를 선택 */
 function getChildPosition(
   direction: LayoutDirection,
   parent: FlowNode,
-  childCount: number,
+  _childCount: number,
   parentWidth: number,
-  parentHeight: number
+  parentHeight: number,
+  allNodes: FlowNode[]
 ): { x: number; y: number } {
+  const px = parent.position.x;
+  const py = parent.position.y;
+  const CW = 160; // 새 노드 예상 폭
+  const CH = 60; // 새 노드 예상 높이
+  const GAP = 30;
+
+  // + 버튼은 부모 카드의 오른쪽·아래 모서리에 있으므로 그 근처에서 시도
+  let candidates: Array<{ x: number; y: number }>;
   if (direction === "down") {
-    return {
-      x: parent.position.x + childCount * 220,
-      y: parent.position.y + parentHeight + 100,
-    };
+    // 아래로 뻗는 배치: 바로 아래에서 시작해 좌우로 확장
+    candidates = [
+      { x: px + parentWidth / 2 - CW / 2, y: py + parentHeight + GAP },
+      { x: px + parentWidth + GAP, y: py + parentHeight + GAP },
+      { x: px - CW - GAP, y: py + parentHeight + GAP },
+      { x: px + parentWidth / 2 - CW / 2, y: py + parentHeight + GAP + CH + 20 },
+    ];
+  } else if (direction === "radial") {
+    const radius = Math.max(parentWidth, parentHeight) * 0.9 + GAP;
+    candidates = Array.from({ length: 8 }, (_, i) => {
+      const a = (i * (2 * Math.PI)) / 8;
+      return {
+        x: px + parentWidth / 2 - CW / 2 + Math.cos(a) * radius,
+        y: py + parentHeight / 2 - CH / 2 + Math.sin(a) * radius,
+      };
+    });
+  } else {
+    // 기본(오른쪽으로): +버튼 오른쪽에서 시작, 위·아래로 시프트하며 자리 찾기
+    candidates = [
+      { x: px + parentWidth + GAP, y: py + parentHeight / 2 - CH / 2 },
+      { x: px + parentWidth + GAP, y: py + parentHeight + 20 },
+      { x: px + parentWidth + GAP, y: py - CH - 20 },
+      { x: px + parentWidth + GAP, y: py + parentHeight + CH + 30 },
+      { x: px + parentWidth + GAP, y: py - CH - CH - 30 },
+    ];
   }
-  if (direction === "radial") {
-    const angle = childCount * ((2 * Math.PI) / 6);
-    const radius = 220;
-    return {
-      x: parent.position.x + radius * Math.cos(angle),
-      y: parent.position.y + radius * Math.sin(angle),
-    };
-  }
-  return {
-    x: parent.position.x + parentWidth + 90,
-    y: parent.position.y + childCount * 100,
-  };
+
+  const overlaps = (p: { x: number; y: number }): boolean =>
+    allNodes.some((n) => {
+      if (n.id === parent.id) return false;
+      const nw = n.measured?.width ?? n.width ?? 160;
+      const nh = n.measured?.height ?? n.height ?? 60;
+      return !(
+        p.x + CW + 10 < n.position.x ||
+        n.position.x + nw + 10 < p.x ||
+        p.y + CH + 10 < n.position.y ||
+        n.position.y + nh + 10 < p.y
+      );
+    });
+
+  for (const c of candidates) if (!overlaps(c)) return c;
+
+  // 모두 겹치면 첫 후보에서 살짝 아래로 밀어 배치 (부모 근처 유지)
+  return { x: candidates[0].x, y: candidates[0].y + CH + GAP };
 }
 
 // 엣지 목록에서 source→target 관계를 따라 특정 노드의 모든 하위(자손) id 수집
@@ -317,7 +354,14 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     const childCount = edges.filter((e) => e.source === parentId).length;
     const parentWidth = parent.measured?.width ?? parent.width ?? 160;
     const parentHeight = parent.measured?.height ?? parent.height ?? 60;
-    const pos = getChildPosition(preset.direction, parent, childCount, parentWidth, parentHeight);
+    const pos = getChildPosition(
+      preset.direction,
+      parent,
+      childCount,
+      parentWidth,
+      parentHeight,
+      nodes
+    );
     const child = makeNode(kind, pos, randomFrom(bookmarkPalette), randomFrom(memoPalette), lastLevelRef.current);
     setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), { ...child, selected: true }]);
     setEdges((eds) =>

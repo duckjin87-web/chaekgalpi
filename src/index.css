@@ -16,44 +16,57 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* ─── 모바일 친화 스크롤바 (전역) ─── */
+/* ─── 모바일 친화 스크롤바 (전역) — 손가락으로 잡기 쉬운 넓이 ─── */
 * {
   scrollbar-width: auto;
-  scrollbar-color: rgba(60, 40, 20, 0.5) rgba(0, 0, 0, 0.05);
+  scrollbar-color: rgba(60, 40, 20, 0.55) rgba(0, 0, 0, 0.06);
 }
 *::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
+  width: 18px;
+  height: 18px;
 }
 *::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.06);
-  border-radius: 8px;
+  border-radius: 10px;
 }
 *::-webkit-scrollbar-thumb {
-  background: rgba(60, 40, 20, 0.5);
-  border-radius: 8px;
-  border: 2px solid transparent;
+  background: rgba(60, 40, 20, 0.55);
+  border-radius: 10px;
+  /* 얇은 투명 테두리로 트랙과 살짝 간격만 유지 (터치 타겟은 넓게 남김) */
+  border: 1px solid transparent;
   background-clip: padding-box;
+  min-height: 60px;
 }
 *::-webkit-scrollbar-thumb:hover,
 *::-webkit-scrollbar-thumb:active {
-  background: rgba(60, 40, 20, 0.75);
+  background: rgba(60, 40, 20, 0.8);
   background-clip: padding-box;
 }
-/* 책 상세처럼 세로 스크롤이 큰 영역은 한 단계 더 두껍게 */
+
+/* 책 상세처럼 세로 스크롤이 큰 영역은 확실히 손가락 굵기(≈28px)로 */
 .thick-scroll::-webkit-scrollbar {
-  width: 16px;
-  height: 16px;
+  width: 28px;
+  height: 28px;
+}
+.thick-scroll::-webkit-scrollbar-track {
+  background: rgba(34, 51, 90, 0.08);
+  border-radius: 14px;
 }
 .thick-scroll::-webkit-scrollbar-thumb {
-  background: rgba(34, 51, 90, 0.55);
-  border-radius: 10px;
-  border: 3px solid transparent;
+  background: rgba(34, 51, 90, 0.6);
+  border-radius: 14px;
+  border: 2px solid transparent;
   background-clip: padding-box;
+  min-height: 80px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
 }
+.thick-scroll::-webkit-scrollbar-thumb:hover,
 .thick-scroll::-webkit-scrollbar-thumb:active {
   background: rgba(34, 51, 90, 0.9);
   background-clip: padding-box;
+}
+.thick-scroll {
+  scrollbar-color: rgba(34, 51, 90, 0.6) rgba(34, 51, 90, 0.08);
 }
 
 /* ─── 완독 축하 애니메이션 ─── */

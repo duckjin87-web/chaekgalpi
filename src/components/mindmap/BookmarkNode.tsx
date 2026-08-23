@@ -131,11 +131,11 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
 
       <Handle type="source" position={Position.Right} className={handleClass} />
 
-      {/* 사진 첨부 버튼 (선택 시) */}
-      {selected && (
-        <>
+      {/* 상단 중앙 버튼 바: 📷(선택시)  ×(사진 제거·있을때)  +(항상) */}
+      <div className="nodrag absolute -top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5">
+        {selected && (
           <button
-            className="nodrag absolute -top-2.5 -right-2.5 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-white/95 text-xs shadow"
+            className="flex h-6 w-6 items-center justify-center rounded-full border border-white bg-white/95 text-xs shadow"
             onClick={(e) => {
               e.stopPropagation();
               fileRef.current?.click();
@@ -144,43 +144,41 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
           >
             📷
           </button>
-          {data.photoUrl && (
-            <button
-              className="nodrag absolute -top-2.5 right-4 z-20 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-white/95 text-xs text-red-500 shadow"
-              onClick={(e) => {
-                e.stopPropagation();
-                updateNodeData(id, { photoUrl: undefined });
-              }}
-              title="사진 제거"
-            >
-              ×
-            </button>
-          )}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFile(f);
-              e.target.value = "";
+        )}
+        {selected && data.photoUrl && (
+          <button
+            className="flex h-6 w-6 items-center justify-center rounded-full border border-white bg-white/95 text-xs text-red-500 shadow"
+            onClick={(e) => {
+              e.stopPropagation();
+              updateNodeData(id, { photoUrl: undefined });
             }}
-          />
-        </>
-      )}
-
-      {/* + 버튼 → 연결된 자식 노드 생성 */}
-      <button
-        className="nodrag absolute -bottom-2.5 -right-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-emerald-700 text-base leading-none text-white shadow hover:bg-emerald-500"
-        onClick={(e) => {
-          e.stopPropagation();
-          addChild(id);
+            title="사진 제거"
+          >
+            ×
+          </button>
+        )}
+        <button
+          className="flex h-6 w-6 items-center justify-center rounded-full border border-white bg-emerald-700 text-base leading-none text-white shadow hover:bg-emerald-500"
+          onClick={(e) => {
+            e.stopPropagation();
+            addChild(id);
+          }}
+          title="연결된 노드 추가"
+        >
+          +
+        </button>
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          e.target.value = "";
         }}
-        title="연결된 노드 추가"
-      >
-        +
-      </button>
+      />
 
       {selected && <InlineNodeEditor id={id} data={data} />}
     </div>

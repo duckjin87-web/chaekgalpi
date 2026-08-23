@@ -122,36 +122,57 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
             className="h-3 w-14"
             title="투명도"
           />
-          <div className="h-4 w-px bg-stone-300/60" />
+        </div>
+      )}
+
+      {/* 상단 중앙 버튼 바: 📷(선택시)  ×(사진 제거·있을때)  +(항상) */}
+      <div className="nodrag absolute -top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5">
+        {selected && (
           <button
-            onClick={() => fileRef.current?.click()}
-            className="rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] text-stone-600 hover:bg-white"
+            className="flex h-6 w-6 items-center justify-center rounded-full border border-white bg-white/95 text-xs shadow"
+            onClick={(e) => {
+              e.stopPropagation();
+              fileRef.current?.click();
+            }}
             title="사진 첨부"
           >
             📷
           </button>
-          {data.photoUrl && (
-            <button
-              onClick={() => updateNodeData(id, { photoUrl: undefined })}
-              className="rounded-full bg-white/70 px-1.5 py-0.5 text-[10px] text-red-500 hover:bg-white"
-              title="사진 제거"
-            >
-              ×
-            </button>
-          )}
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) handleFile(f);
-              e.target.value = "";
+        )}
+        {selected && data.photoUrl && (
+          <button
+            className="flex h-6 w-6 items-center justify-center rounded-full border border-white bg-white/95 text-xs text-red-500 shadow"
+            onClick={(e) => {
+              e.stopPropagation();
+              updateNodeData(id, { photoUrl: undefined });
             }}
-          />
-        </div>
-      )}
+            title="사진 제거"
+          >
+            ×
+          </button>
+        )}
+        <button
+          className="flex h-6 w-6 items-center justify-center rounded-full border border-white bg-amber-600 text-base leading-none text-white shadow hover:bg-amber-400"
+          onClick={(e) => {
+            e.stopPropagation();
+            addChild(id);
+          }}
+          title="연결된 노드 추가"
+        >
+          +
+        </button>
+      </div>
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          e.target.value = "";
+        }}
+      />
 
       <div
         className="h-full w-full overflow-hidden rounded-sm p-3 text-stone-800"
@@ -195,18 +216,6 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
           </div>
         )}
       </div>
-
-      {/* + 버튼으로 연결된 노드 생성 */}
-      <button
-        className="nodrag absolute -bottom-2.5 -right-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-white bg-amber-600 text-base leading-none text-white shadow hover:bg-amber-400"
-        onClick={(e) => {
-          e.stopPropagation();
-          addChild(id);
-        }}
-        title="연결된 노드 추가"
-      >
-        +
-      </button>
     </div>
   );
 }

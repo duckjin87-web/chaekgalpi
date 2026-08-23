@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useLibraryStore } from "../store/useLibraryStore";
 import MindMapEditor from "../components/mindmap/MindMapEditor";
 import ReviewEditor from "../components/review/ReviewEditor";
 import EditBookModal from "../components/library/EditBookModal";
+import CompletionCelebration from "../components/common/CompletionCelebration";
 import type { BookStatus } from "../types";
 
 type Tab = "mindmap" | "review";
@@ -34,6 +35,55 @@ export default function BookDetailPage() {
   const [showInfo, setShowInfo] = useState(true);
   const [descExpanded, setDescExpanded] = useState(false);
   const [pageDraft, setPageDraft] = useState<string | null>(null);
+  const [celebrating, setCelebrating] = useState(false);
+  const celebrationFiredRef = useRef(false);
+
+  // 100% 도달 시 자동으로 완독 처리 + 축하 (한 번만)
+  useEffect(() => {
+    if (!book) return;
+    const totalNow = book.bookType === "전자책" ? 100 : book.pageCount ?? 0;
+    const curNow = book.currentPage ?? 0;
+    if (
+      totalNow > 0 &&
+      curNow >= totalNow &&
+      book.status !== "완독" &&
+      !celebrationFiredRef.current
+    ) {
+      celebrationFiredRef.current = true;
+      updateBook(book.id, {
+        status: "완독",
+        finishDate: book.finishDate ?? new Date().toISOString(),
+      });
+      setCelebrating(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [book?.currentPage, book?.pageCount, book?.bookType, book?.status]);
+
+  function completeReading() {
+    if (!book) return;
+    updateBook(book.id, {
+      status: "완독",
+      finishDate: book.finishDate ?? new Date().toISOString(),
+      currentPage:
+        book.bookType === "전자책" ? 100 : book.pageCount ?? book.currentPage,
+    });
+    celebrationFiredRef.current = true;
+    setCelebrating(true);
+  }
+
+  function handleStatusClick() {
+    if (!book) return;
+    if (book.status === "완독") {
+      if (confirm("완독 상태를 '읽는 중'으로 되돌릴까요?")) {
+        celebrationFiredRef.current = false;
+        updateBook(book.id, { status: "읽는중" });
+      }
+      return;
+    }
+    // 읽고싶음/읽는중 클릭 → 완독으로 표시
+    const label = book.status === "읽는중" ? "이 책을 완독으로 표시할까요?" : "이 책을 완독으로 바로 표시할까요?";
+    if (confirm(label)) completeReading();
+  }
 
   if (!book || !bookId) {
     return (
@@ -70,7 +120,7 @@ export default function BookDetailPage() {
   const progress = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
 
   return (
-    <div className="paper-texture h-screen overflow-y-auto">
+    <div className="paper-texture thick-scroll h-screen overflow-y-auto">
       <div className="paper-texture sticky top-0 z-30 flex items-center justify-between px-5 pb-1 pt-3">
         <Link to="/" className="text-sm text-stone-500 hover:underline">
           ← 서재로
@@ -113,11 +163,13 @@ export default function BookDetailPage() {
                   {book.publisher && (
                     <p className="text-xs tracking-wide text-stone-400">{book.publisher}</p>
                   )}
-                  <span
-                    className={`mt-2 inline-block rounded-sm px-2 py-0.5 text-[11px] font-medium tracking-[0.15em] ${statusStyle[book.status]}`}
+                  <button
+                    onClick={handleStatusClick}
+                    className={`mt-2 inline-block rounded-sm px-2 py-0.5 text-[11px] font-medium tracking-[0.15em] transition-transform hover:scale-105 ${statusStyle[book.status]}`}
+                    title={book.status === "완독" ? "탭해서 되돌리기" : "탭해서 완독으로 표시"}
                   >
                     {book.status}
-                  </span>
+                  </button>
                   <div className="mt-2 flex gap-3 text-xs">
                     <button
                       onClick={() => setShowEditModal(true)}
@@ -284,6 +336,18 @@ export default function BookDetailPage() {
           <ReviewEditor bookId={bookId} />
         )}
       </div>
+
+      {celebrating && (
+        <CompletionCelebration
+          title={currentBook.title}
+          onDone={() => {
+            setCelebrating(false);
+            setTab("review");
+            // 정보 카드를 접어 독후감이 바로 보이도록
+            setShowInfo(false);
+          }}
+        />
+      )}
     </div>
   );
 }

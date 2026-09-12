@@ -172,11 +172,16 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
         const book = queue.shift();
         if (!book) return;
         inFlightRef.current.add(book.id);
-        const url = await fetchSpineUrl(book.isbn, book.title);
+        const { spineUrl, definitive } = await fetchSpineUrl(book.isbn, book.title);
         if (cancelled) return;
+
+        // 통신 실패(definitive=false)면 아무것도 기록하지 않는다.
+        // → '조회 완료'로 굳지 않고, 다음에 앱을 열 때 다시 시도한다.
+        if (!definitive && !spineUrl) continue;
+
         updateBook(book.id, {
           // 수동으로 지정해 둔 책등이 있으면 덮어쓰지 않는다
-          spineUrl: book.spineUrl ?? url ?? undefined,
+          spineUrl: book.spineUrl ?? spineUrl ?? undefined,
           spineChecked: true,
           spineV: SPINE_V,
         });

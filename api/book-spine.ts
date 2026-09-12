@@ -29,10 +29,13 @@ function extractGoodsNos(html: string, limit = 6): string[] {
   return out;
 }
 
-/** YES24 검색 JSON 으로 상품번호 후보 얻기 */
+/**
+ * YES24 검색 JSON 으로 상품번호 후보 얻기.
+ * netError=true 는 통신 실패(재시도 대상), false 는 정상 응답(결과 0건일 수 있음).
+ */
 async function searchGoodsNos(
   query: string
-): Promise<{ nos: string[]; status: number; len: number }> {
+): Promise<{ nos: string[]; status: number; len: number; netError: boolean }> {
   const url = `https://m.yes24.com/Search/SearchContentsJson?query=${encodeURIComponent(query)}`;
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 9000);
@@ -47,7 +50,7 @@ async function searchGoodsNos(
         Referer: "https://m.yes24.com/",
       },
     });
-    if (!r.ok) return { nos: [], status: r.status, len: 0 };
+    if (!r.ok) return { nos: [], status: r.status, len: 0, netError: true };
     const text = await r.text();
     let listHtml = "";
     try {
@@ -56,9 +59,15 @@ async function searchGoodsNos(
     } catch {
       listHtml = text; // JSON 이 아니면 원문에서라도 시도
     }
-    return { nos: extractGoodsNos(listHtml), status: r.status, len: text.length };
+    return {
+      nos: extractGoodsNos(listHtml),
+      status: r.status,
+      len: text.length,
+      netError: false,
+    };
   } catch {
-    return { nos: [], status: 0, len: 0 };
+    // 타임아웃/네트워크 오류
+    return { nos: [], status: 0, len: 0, netError: true };
   } finally {
     clearTimeout(t);
   }
@@ -88,8 +97,13 @@ async function productHasIsbn(goodsNo: string, isbn: string): Promise<boolean> {
   }
 }
 
-/** 책등 이미지가 실제로 존재하는지 확인 */
-async function spineExists(url: string): Promise<{ ok: boolean; bytes: number }> {
+/**
+ * 책등 이미지가 실제로 존재하는지 확인.
+ * netError=true 는 통신 실패(재시도 대상). 404/작은 플레이스홀더는 '정말 없음'.
+ */
+async function spineExists(
+  url: string
+): Promise<{ ok: boolean; bytes: number; netError: boolean }> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 8000);
   try {
@@ -97,13 +111,14 @@ async function spineExists(url: string): Promise<{ ok: boolean; bytes: number }>
       signal: ctrl.signal,
       headers: { "User-Agent": UA_MOBILE, Accept: "image/*", Referer: "https://m.yes24.com/" },
     });
-    if (!r.ok) return { ok: false, bytes: 0 };
+    // 404/410 = 이 책에 책등 이미지가 없음(확정). 5xx = 서버 문제(재시도)
+    if (!r.ok) return { ok: false, bytes: 0, netError: r.status >= 500 };
     const ct = r.headers.get("content-type") ?? "";
-    if (!ct.startsWith("image/")) return { ok: false, bytes: 0 };
+    if (!ct.startsWith("image/")) return { ok: false, bytes: 0, netError: false };
     const bytes = (await r.arrayBuffer()).byteLength;
-    return { ok: bytes >= 1200, bytes };
+    return { ok: bytes >= 1200, bytes, netError: false };
   } catch {
-    return { ok: false, bytes: 0 };
+    return { ok: false, bytes: 0, netError: true };
   } finally {
     clearTimeout(t);
   }
@@ -121,17 +136,39 @@ export default async function handler(req: any, res: any) {
   }
 
   res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "public, s-maxage=2592000, stale-while-revalidate=2592000");
 
   const dbg: Record<string, unknown> = {};
   let goodsNo = goodsNoParam;
   let matchedBy = goodsNoParam ? "param" : "";
 
+  /**
+   * status 의미
+   *  found     : 책등 이미지를 찾음
+   *  no-spine  : 상품은 찾았지만 이 책에 책등 이미지가 없음 (확정 → 재조회 불필요)
+   *  not-found : 검색 결과에 이 책이 없음 (확정 → 재조회 불필요)
+   *  error     : 통신 실패/타임아웃 (일시적 → 다음에 재시도)
+   */
+  const reply = (
+    status: "found" | "no-spine" | "not-found" | "error",
+    body: Record<string, unknown>
+  ) => {
+    if (status === "error") {
+      // 일시적 실패는 캐시하지 않는다 (엣지 캐시에 30일 남으면 영구 실패가 됨)
+      res.setHeader("Cache-Control", "no-store");
+    } else {
+      res.setHeader("Cache-Control", "public, s-maxage=2592000, stale-while-revalidate=2592000");
+    }
+    res.status(200).json({ status, ...body, ...(debug ? { debug: dbg } : {}) });
+  };
+
   try {
+    let netError = false;
+
     // 1) ISBN 검색 — ISBN 은 고유하므로 첫 결과를 신뢰
     if (!goodsNo && isbn) {
       const r = await searchGoodsNos(isbn);
-      dbg.isbnSearch = { status: r.status, len: r.len, nos: r.nos };
+      dbg.isbnSearch = { status: r.status, len: r.len, nos: r.nos, netError: r.netError };
+      if (r.netError) netError = true;
       if (r.nos.length) {
         goodsNo = r.nos[0];
         matchedBy = "isbn";
@@ -141,7 +178,8 @@ export default async function handler(req: any, res: any) {
     // 2) 제목 검색 — ISBN 이 있으면 상세 페이지로 검증, 없으면 첫 결과
     if (!goodsNo && title) {
       const r = await searchGoodsNos(title);
-      dbg.titleSearch = { status: r.status, len: r.len, nos: r.nos };
+      dbg.titleSearch = { status: r.status, len: r.len, nos: r.nos, netError: r.netError };
+      if (r.netError) netError = true;
       if (r.nos.length) {
         if (isbn) {
           for (const no of r.nos.slice(0, 3)) {
@@ -160,30 +198,43 @@ export default async function handler(req: any, res: any) {
     }
 
     if (!goodsNo) {
-      res.status(200).json({
-        spineUrl: null,
-        reason: "YES24 검색 결과에서 이 책을 찾지 못했어요.",
-        ...(debug ? { debug: dbg } : {}),
-      });
+      // 통신이 실패했으면 '없음'으로 단정하지 않는다
+      if (netError) {
+        reply("error", {
+          spineUrl: null,
+          reason: "YES24 연결에 실패했어요. 잠시 후 다시 시도합니다.",
+        });
+      } else {
+        reply("not-found", {
+          spineUrl: null,
+          reason: "YES24 검색 결과에서 이 책을 찾지 못했어요.",
+        });
+      }
       return;
     }
 
     const spineUrl = `https://image.yes24.com/goods/${goodsNo}/SIDE/XL`;
     const check = await spineExists(spineUrl);
-    dbg.spineBytes = check.bytes;
+    dbg.spine = { bytes: check.bytes, netError: check.netError };
 
-    res.status(200).json({
-      spineUrl: check.ok ? spineUrl : null,
-      goodsNo,
-      matchedBy,
-      reason: check.ok ? undefined : "이 책은 책등 이미지가 제공되지 않아요.",
-      ...(debug ? { debug: dbg } : {}),
-    });
+    if (check.ok) {
+      reply("found", { spineUrl, goodsNo, matchedBy });
+    } else if (check.netError) {
+      reply("error", {
+        spineUrl: null,
+        goodsNo,
+        matchedBy,
+        reason: "책등 이미지 확인에 실패했어요. 잠시 후 다시 시도합니다.",
+      });
+    } else {
+      reply("no-spine", {
+        spineUrl: null,
+        goodsNo,
+        matchedBy,
+        reason: "이 책은 책등 이미지가 제공되지 않아요.",
+      });
+    }
   } catch (err: any) {
-    res.status(200).json({
-      spineUrl: null,
-      reason: String(err?.message ?? err),
-      ...(debug ? { debug: dbg } : {}),
-    });
+    reply("error", { spineUrl: null, reason: String(err?.message ?? err) });
   }
 }

@@ -6,20 +6,38 @@
  * 자동으로 못 찾은 책은 사용자가 상품번호/링크를 붙여넣어 직접 지정할 수 있다.
  */
 
-/** ISBN/제목으로 책등 URL 자동 조회. 못 찾으면 null. */
-export async function fetchSpineUrl(isbn?: string, title?: string): Promise<string | null> {
+export interface SpineLookup {
+  spineUrl: string | null;
+  /**
+   * true  = 확정된 결과 (찾았거나, YES24에 정말 없음) → 다시 조회할 필요 없음
+   * false = 통신 실패/타임아웃 → 다음에 다시 시도해야 함
+   */
+  definitive: boolean;
+}
+
+/** ISBN/제목으로 책등 URL 자동 조회 */
+export async function fetchSpineUrl(isbn?: string, title?: string): Promise<SpineLookup> {
   const cleanIsbn = (isbn ?? "").replace(/[^0-9Xx]/g, "");
   const params = new URLSearchParams();
   if (cleanIsbn) params.set("isbn", cleanIsbn);
   if (title?.trim()) params.set("title", title.trim());
-  if ([...params.keys()].length === 0) return null;
+  // 조회할 단서가 없으면 재시도해도 의미 없으므로 확정 처리
+  if ([...params.keys()].length === 0) return { spineUrl: null, definitive: true };
+
   try {
     const res = await fetch(`/api/book-spine?${params.toString()}`);
-    if (!res.ok) return null;
-    const data = (await res.json()) as { spineUrl?: string | null };
-    return data.spineUrl ?? null;
+    if (!res.ok) return { spineUrl: null, definitive: false };
+    const data = (await res.json()) as {
+      spineUrl?: string | null;
+      status?: "found" | "no-spine" | "not-found" | "error";
+    };
+    return {
+      spineUrl: data.spineUrl ?? null,
+      definitive: data.status !== "error",
+    };
   } catch {
-    return null;
+    // 오프라인 등 네트워크 오류 → 재시도 대상
+    return { spineUrl: null, definitive: false };
   }
 }
 

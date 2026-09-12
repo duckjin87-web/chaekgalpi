@@ -15,8 +15,43 @@
  * 응답: { spineUrl: string | null, goodsNo?: string, reason?: string }
  */
 
+import iconv from "iconv-lite";
+
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+
+/** 검색어를 EUC-KR 로 percent-encode (구형 YES24 검색이 ks_c_5601-1987 사용) */
+function eucKrPercentEncode(s: string): string {
+  const buf = iconv.encode(s, "euc-kr");
+  let out = "";
+  for (const b of buf) {
+    const unreserved =
+      (b >= 0x30 && b <= 0x39) ||
+      (b >= 0x41 && b <= 0x5a) ||
+      (b >= 0x61 && b <= 0x7a) ||
+      b === 0x2d ||
+      b === 0x5f ||
+      b === 0x2e ||
+      b === 0x7e;
+    out += unreserved
+      ? String.fromCharCode(b)
+      : "%" + b.toString(16).toUpperCase().padStart(2, "0");
+  }
+  return out;
+}
+
+/** 응답 charset(EUC-KR/UTF-8)을 보고 올바르게 디코드 */
+async function readHtml(r: Response): Promise<string> {
+  const ct = r.headers.get("content-type") ?? "";
+  const buf = Buffer.from(await r.arrayBuffer());
+  if (/ks_c_5601|euc-?kr|cp949/i.test(ct)) return iconv.decode(buf, "euc-kr");
+  // charset 이 없으면 meta 태그로 재판정
+  const asUtf8 = buf.toString("utf8");
+  if (/charset\s*=\s*["']?\s*(ks_c_5601|euc-?kr|cp949)/i.test(asUtf8.slice(0, 2000))) {
+    return iconv.decode(buf, "euc-kr");
+  }
+  return asUtf8;
+}
 
 async function fetchText(url: string, timeoutMs = 8000): Promise<string | null> {
   const ctrl = new AbortController();
@@ -31,7 +66,7 @@ async function fetchText(url: string, timeoutMs = 8000): Promise<string | null> 
       },
     });
     if (!r.ok) return null;
-    return await r.text();
+    return await readHtml(r);
   } catch {
     return null;
   } finally {
@@ -217,7 +252,14 @@ async function spineExists(url: string): Promise<{ ok: boolean; bytes?: number }
  */
 async function probeEndpoints(query: string) {
   const q = encodeURIComponent(query);
+  const qe = eucKrPercentEncode(query); // 구형 검색용 EUC-KR 인코딩
   const candidates = [
+    // ★ EUC-KR 로 질의 + EUC-KR 로 디코드 (구형 searchcorner)
+    `https://www.yes24.com/searchcorner/Search?keywordAd=&keyword=&domain=BOOK&query=${qe}`,
+    `https://www.yes24.com/searchcorner/Search?domain=ALL&query=${qe}`,
+    `https://www.yes24.com/SearchCorner/Search?domain=BOOK&query=${qe}`,
+    // UTF-8 질의 + charset 자동판정 디코드
+    `https://www.yes24.com/searchcorner/Search?keywordAd=&keyword=&domain=BOOK&query=${q}`,
     // 모바일 내부 목록 API 후보
     `https://m.yes24.com/search/getSearchList?domain=ALL&query=${q}`,
     `https://m.yes24.com/Search/GetSearchList?domain=ALL&query=${q}`,
@@ -252,16 +294,25 @@ async function probeEndpoints(query: string) {
         },
       });
       const ct = r.headers.get("content-type") ?? "";
-      const body = r.ok ? await r.text() : "";
+      const body = r.ok ? await readHtml(r) : "";
       const goods = body ? extractGoodsNoCandidates(body, 4) : [];
+      // 검색어가 본문에 있으면 그 주변을 보여줘 실제 결과인지 확인
+      const at = body.indexOf(query);
       out.push({
         url,
         status: r.status,
         contentType: ct.slice(0, 40),
         len: body.length,
-        queryInBody: body.includes(query),
+        queryInBody: at >= 0,
         goods,
-        head: body.slice(0, 160).replace(/\s+/g, " "),
+        around:
+          at >= 0
+            ? body
+                .slice(Math.max(0, at - 120), at + 200)
+                .replace(/<[^>]*>/g, " ")
+                .replace(/\s+/g, " ")
+            : undefined,
+        head: body.slice(0, 120).replace(/\s+/g, " "),
       });
     } catch (e: any) {
       out.push({ url, error: String(e?.message ?? e).slice(0, 80) });

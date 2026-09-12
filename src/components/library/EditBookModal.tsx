@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Book, BookStatus } from "../../types";
+import { normalizeSpineInput } from "../../lib/bookSpine";
 
 interface EditBookModalProps {
   book: Book;
@@ -17,8 +18,11 @@ export default function EditBookModal({ book, onClose, onSave }: EditBookModalPr
   const [publisher, setPublisher] = useState(book.publisher ?? "");
   const [publishedDate, setPublishedDate] = useState(book.publishedDate ?? "");
   const [status, setStatus] = useState<BookStatus>(book.status);
+  const [spineInput, setSpineInput] = useState(book.spineUrl ?? "");
 
   const isEbook = bookType === "전자책";
+  const spinePreview = normalizeSpineInput(spineInput);
+  const spineInvalid = spineInput.trim().length > 0 && !spinePreview;
 
   function handleSubmit() {
     onSave({
@@ -29,6 +33,8 @@ export default function EditBookModal({ book, onClose, onSave }: EditBookModalPr
       publisher: publisher.trim() || undefined,
       publishedDate: publishedDate.trim() || undefined,
       status,
+      spineUrl: spineInput.trim() ? spinePreview : undefined,
+      spineChecked: true,
     });
     onClose();
   }
@@ -114,6 +120,50 @@ export default function EditBookModal({ book, onClose, onSave }: EditBookModalPr
             <option value="완독">완독</option>
           </select>
         </div>
+        {/* 책등 이미지 — YES24 상품번호/URL 을 붙여넣으면 책장에 실제 책등이 표시됨 */}
+        <div>
+          <label className="block text-xs font-medium text-stone-600">
+            책등 이미지 <span className="font-normal text-stone-400">(YES24)</span>
+          </label>
+          <input
+            className={`mt-1 w-full rounded border px-2 py-1 text-sm ${
+              spineInvalid ? "border-red-400" : "border-stone-300"
+            }`}
+            value={spineInput}
+            onChange={(e) => setSpineInput(e.target.value)}
+            placeholder="176223281 또는 YES24 링크 붙여넣기"
+          />
+          {spineInvalid ? (
+            <p className="mt-1 text-[11px] text-red-500">
+              인식할 수 없어요. YES24 상품번호나 상품/이미지 링크를 넣어주세요.
+            </p>
+          ) : (
+            <p className="mt-1 text-[11px] leading-relaxed text-stone-400">
+              YES24에서 이 책을 열고 주소의 숫자(예: m.yes24.com/goods/detail/
+              <b className="text-stone-500">176223281</b>)만 넣어도 돼요.
+            </p>
+          )}
+          {spinePreview && (
+            <div className="mt-2 flex items-center gap-2">
+              <img
+                src={spinePreview}
+                alt="책등 미리보기"
+                className="h-24 w-auto rounded-[2px] shadow"
+                referrerPolicy="no-referrer"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] text-emerald-700">책등 이미지를 찾았어요</p>
+                <button
+                  onClick={() => setSpineInput("")}
+                  className="mt-1 text-[11px] text-red-500 hover:underline"
+                >
+                  지우기
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="flex justify-end gap-2 pt-2">
           <button onClick={onClose} className="rounded px-3 py-1 text-sm text-stone-500 hover:bg-stone-100">
             취소

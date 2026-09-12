@@ -153,8 +153,14 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
   const updateBook = useLibraryStore((s) => s.updateBook);
   const inFlightRef = useRef<Set<string>>(new Set());
 
-  // ISBN 은 있는데 책등을 아직 조회하지 않은 책들을 순차적으로 백필 (동시 2건)
+  // 자동 책등 조회는 현재 비활성.
+  // YES24 검색 결과가 JS 로 렌더링돼 서버에서 상품번호를 얻을 수 없음(확인됨).
+  // 책등은 '정보 수정'에서 YES24 상품번호/링크를 붙여넣어 지정한다.
+  // 검색 엔드포인트를 확보하면 AUTO_SPINE_LOOKUP 을 true 로 되돌리면 된다.
+  const AUTO_SPINE_LOOKUP = false;
+
   useEffect(() => {
+    if (!AUTO_SPINE_LOOKUP) return;
     const pending = allBooks.filter(
       (b) =>
         (b.isbn || b.title) &&

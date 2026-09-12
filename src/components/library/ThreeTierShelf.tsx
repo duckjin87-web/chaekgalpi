@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Book } from "../../types";
 import { getDailyRecommendations, type BookRec } from "../../lib/recommendations";
+import { fetchSpineUrl } from "../../lib/bookSpine";
+import { useLibraryStore } from "../../store/useLibraryStore";
 
 interface ThreeTierShelfProps {
   recentBooks: Book[];
@@ -29,7 +31,8 @@ const SPINE_STYLES: { bg: string; fg: string }[] = [
 ];
 
 const SPINE_HEIGHT_PX = 148;
-
+/** 책등 조회 로직 버전. 올리면 저장된 책등 결과를 버리고 다시 조회한다. */
+const SPINE_V = 5;
 
 /** 제목 길이에 따른 책등 두께 (색상 책등 폴백용) */
 function spineWidth(title: string): number {
@@ -145,10 +148,48 @@ function Tier({ label, children }: TierProps) {
   );
 }
 
-// 책등 이미지는 책 상세 → '정보 수정' 에서 YES24 상품번호/링크를 붙여넣어 지정한다.
-// (YES24 검색은 클라이언트 렌더링이라 서버에서 상품번호를 얻을 수 없음)
 export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: ThreeTierShelfProps) {
   const recs = getDailyRecommendations(allBooks);
+  const updateBook = useLibraryStore((s) => s.updateBook);
+  const inFlightRef = useRef<Set<string>>(new Set());
+
+  // 아직 조회하지 않은 책의 책등을 자동으로 채운다 (동시 2건).
+  // 자동으로 못 찾은 책은 '정보 수정'에서 YES24 상품번호를 직접 넣을 수 있다.
+  useEffect(() => {
+    const pending = allBooks.filter(
+      (b) =>
+        (b.isbn || b.title) &&
+        (b.spineV !== SPINE_V || !b.spineChecked) &&
+        !inFlightRef.current.has(b.id)
+    );
+    if (pending.length === 0) return;
+
+    let cancelled = false;
+    const queue = [...pending];
+
+    async function worker() {
+      while (!cancelled) {
+        const book = queue.shift();
+        if (!book) return;
+        inFlightRef.current.add(book.id);
+        const url = await fetchSpineUrl(book.isbn, book.title);
+        if (cancelled) return;
+        updateBook(book.id, {
+          // 수동으로 지정해 둔 책등이 있으면 덮어쓰지 않는다
+          spineUrl: book.spineUrl ?? url ?? undefined,
+          spineChecked: true,
+          spineV: SPINE_V,
+        });
+      }
+    }
+    void worker();
+    void worker();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allBooks.map((b) => `${b.id}:${b.spineV ?? 0}:${b.spineChecked ? 1 : 0}`).join(",")]);
 
   return (
     <section className="mt-6">

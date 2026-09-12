@@ -1,10 +1,27 @@
 /**
  * YES24 책등(SIDE) 이미지 유틸.
  *
- * 자동 조회는 하지 않는다. YES24 검색 결과가 클라이언트에서 렌더링돼
- * 서버에서 상품번호(goodsNo)를 얻을 수 없음을 확인했다.
- * 대신 사용자가 붙여넣은 값에서 goodsNo 를 뽑아 책등 URL 을 만든다.
+ * 자동 조회는 /api/book-spine 이 담당한다
+ * (m.yes24.com/Search/SearchContentsJson 으로 상품번호를 얻어 책등 URL 생성).
+ * 자동으로 못 찾은 책은 사용자가 상품번호/링크를 붙여넣어 직접 지정할 수 있다.
  */
+
+/** ISBN/제목으로 책등 URL 자동 조회. 못 찾으면 null. */
+export async function fetchSpineUrl(isbn?: string, title?: string): Promise<string | null> {
+  const cleanIsbn = (isbn ?? "").replace(/[^0-9Xx]/g, "");
+  const params = new URLSearchParams();
+  if (cleanIsbn) params.set("isbn", cleanIsbn);
+  if (title?.trim()) params.set("title", title.trim());
+  if ([...params.keys()].length === 0) return null;
+  try {
+    const res = await fetch(`/api/book-spine?${params.toString()}`);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { spineUrl?: string | null };
+    return data.spineUrl ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /** goodsNo → 책등 이미지 URL */
 export function spineUrlFromGoodsNo(goodsNo: string): string {

@@ -51,22 +51,22 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
     <div className="space-y-5">
       {/* 서평 생각거리 — 별도 카드, 답변 칸 크게 (기존 2배 이상) */}
       {prompts.length > 0 && (
-        <div className="rounded-xl border-2 border-emerald-200 bg-emerald-50/60 p-4 shadow-sm">
+        <div className="y24-card border-l-[3px] border-l-[#1a54a6] p-4">
           <div className="mb-3 flex items-center gap-2">
             <span className="text-lg">📖</span>
-            <p className="font-serif text-sm font-bold text-emerald-900">
+            <p className="text-[14px] font-bold text-stone-800">
               서평으로 보는 생각거리
             </p>
           </div>
           <div className="space-y-4">
             {prompts.map((q, i) => (
-              <div key={i} className="rounded-lg bg-white/70 p-3">
+              <div key={i} className="rounded-sm border border-[#edf1f6] bg-[#fafbfd] p-3">
                 <p className="text-sm leading-relaxed text-stone-800">
-                  <span className="mr-1 font-bold text-emerald-800">Q{i + 1}.</span>
+                  <span className="mr-1 font-bold text-ink">Q{i + 1}.</span>
                   {q}
                 </p>
                 <textarea
-                  className="mt-2 w-full resize-y rounded border border-stone-200 bg-white p-3 text-sm leading-relaxed"
+                  className="mt-2 w-full resize-y rounded-sm border border-[#d9e2ef] bg-white p-3 text-sm leading-relaxed"
                   rows={6}
                   value={answers[i] ?? ""}
                   onChange={(e) => setAnswer(i, e.target.value)}
@@ -76,7 +76,7 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
             ))}
           </div>
           {book?.readingPrompts?.coreTheme && (
-            <p className="mt-3 border-t border-emerald-200 pt-2 text-sm text-stone-600">
+            <p className="mt-3 border-t border-[#edf1f6] pt-2 text-sm text-stone-600">
               <span className="mr-1 font-medium text-amber-700">핵심 주제.</span>
               {book.readingPrompts.coreTheme}
             </p>
@@ -86,28 +86,28 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
 
       {/* 별점 */}
       <div>
-        <h3 className="font-serif text-sm font-semibold text-stone-700">별점</h3>
+        <h3 className="y24-section-title text-[14px]">별점</h3>
         <RatingStars value={rating} onChange={(value) => upsertReview(bookId, { rating: value })} />
       </div>
 
       {/* 독후감 본문 */}
       <div>
         <div className="flex items-center justify-between">
-          <h3 className="font-serif text-sm font-semibold text-stone-700">독후감</h3>
+          <h3 className="y24-section-title text-[14px]">독후감</h3>
           <button
             onClick={() => setShowPreview((p) => !p)}
-            className="text-xs text-emerald-700 hover:underline"
+            className="text-xs text-ink hover:underline"
           >
             {showPreview ? "편집하기" : "미리보기"}
           </button>
         </div>
         {showPreview ? (
-          <div className="prose prose-sm mt-2 min-h-[200px] rounded border border-stone-200 bg-white p-3">
+          <div className="prose prose-sm mt-2 min-h-[200px] rounded-sm border border-[#d9e2ef] bg-white p-3">
             <ReactMarkdown>{content || "*아직 작성한 내용이 없어요.*"}</ReactMarkdown>
           </div>
         ) : (
           <textarea
-            className="mt-2 w-full resize-y rounded border border-stone-300 p-3 text-sm leading-relaxed"
+            className="mt-2 w-full resize-y rounded-sm border border-[#d9e2ef] p-3 text-sm leading-relaxed"
             rows={12}
             value={content}
             onChange={(e) => upsertReview(bookId, { content: e.target.value })}
@@ -119,12 +119,12 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
       {/* 사진 첨부 (독후감 대표 사진) */}
       <div>
         <div className="flex items-center justify-between">
-          <h3 className="font-serif text-sm font-semibold text-stone-700">대표 사진</h3>
+          <h3 className="y24-section-title text-[14px]">대표 사진</h3>
           <div className="flex items-center gap-2">
             {uploading && <span className="text-xs text-stone-500">이미지 처리 중…</span>}
             <button
               onClick={() => fileRef.current?.click()}
-              className="rounded-sm border border-stone-300 bg-white px-2.5 py-1 text-xs text-stone-700"
+              className="rounded-sm border border-[#d9e2ef] bg-white px-2.5 py-1 text-xs text-stone-600"
             >
               📷 {photoUrl ? "사진 교체" : "사진 추가"}
             </button>
@@ -153,7 +153,7 @@ export default function ReviewEditor({ bookId }: ReviewEditorProps) {
           <img
             src={photoUrl}
             alt="독후감 첨부 사진"
-            className="mt-2 max-h-72 w-full cursor-zoom-in rounded border border-stone-200 object-contain"
+            className="mt-2 max-h-72 w-full cursor-zoom-in rounded-sm border border-[#d9e2ef] object-contain"
             onClick={() => setLightbox(photoUrl)}
           />
         )}

@@ -157,8 +157,8 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="paper-card max-h-[90vh] w-80 space-y-3 overflow-y-auto rounded-md p-5">
-        <h2 className="font-serif text-lg text-stone-800">책 추가</h2>
+      <div className="y24-card max-h-[90vh] w-80 space-y-3 overflow-y-auto p-5">
+        <h2 className="text-[17px] font-bold text-stone-800">책 추가</h2>
         <div>
           <label className="block text-xs font-medium text-stone-600">제목</label>
           <div className="mt-1 flex gap-1">
@@ -209,7 +209,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
         <div>
           <label className="block text-xs font-medium text-stone-600">저자</label>
           <input
-            className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+            className="mt-1 w-full rounded-sm border border-[#d9e2ef] px-2 py-1 text-sm"
             value={author}
             onChange={(e) => setAuthor(e.target.value)}
           />
@@ -218,7 +218,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
           <div className="flex-1">
             <label className="block text-xs font-medium text-stone-600">책 유형</label>
             <select
-              className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+              className="mt-1 w-full rounded-sm border border-[#d9e2ef] px-2 py-1 text-sm"
               value={bookType}
               onChange={(e) => setBookType(e.target.value as "종이책" | "전자책")}
             >
@@ -229,7 +229,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
           <div className="flex-1">
             <label className="block text-xs font-medium text-stone-600">출판일</label>
             <input
-              className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+              className="mt-1 w-full rounded-sm border border-[#d9e2ef] px-2 py-1 text-sm"
               value={publishedDate}
               onChange={(e) => setPublishedDate(e.target.value)}
               placeholder="2020"
@@ -242,7 +242,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
             <input
               type="number"
               min={0}
-              className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+              className="mt-1 w-full rounded-sm border border-[#d9e2ef] px-2 py-1 text-sm"
               value={pageCount}
               onChange={(e) => setPageCount(e.target.value)}
             />
@@ -253,7 +253,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
         <div>
           <label className="block text-xs font-medium text-stone-600">출판사</label>
           <input
-            className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+            className="mt-1 w-full rounded-sm border border-[#d9e2ef] px-2 py-1 text-sm"
             value={publisher}
             onChange={(e) => setPublisher(e.target.value)}
           />
@@ -261,7 +261,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
         <div>
           <label className="block text-xs font-medium text-stone-600">ISBN</label>
           <input
-            className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+            className="mt-1 w-full rounded-sm border border-[#d9e2ef] px-2 py-1 text-sm"
             value={isbn}
             onChange={(e) => setIsbn(e.target.value)}
             placeholder="검색 시 자동 입력"
@@ -270,7 +270,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
         <div>
           <label className="block text-xs font-medium text-stone-600">상태</label>
           <select
-            className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+            className="mt-1 w-full rounded-sm border border-[#d9e2ef] px-2 py-1 text-sm"
             value={status}
             onChange={(e) => setStatus(e.target.value as BookStatus)}
           >
@@ -282,7 +282,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
         <div>
           <label className="block text-xs font-medium text-stone-600">태그 (쉼표로 구분)</label>
           <input
-            className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+            className="mt-1 w-full rounded-sm border border-[#d9e2ef] px-2 py-1 text-sm"
             value={tagsInput}
             onChange={(e) => setTagsInput(e.target.value)}
             placeholder="인문, 소설"
@@ -362,12 +362,12 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
           )}
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button onClick={onClose} className="rounded px-3 py-1 text-sm text-stone-500 hover:bg-stone-100">
+          <button onClick={onClose} className="rounded-sm border border-[#d9e2ef] px-3 py-1.5 text-sm text-stone-600">
             취소
           </button>
           <button
             onClick={handleSubmit}
-            className="rounded bg-emerald-800 px-3 py-1 text-sm text-white hover:bg-emerald-900"
+            className="bg-ink rounded-sm px-3.5 py-1.5 text-sm font-medium text-white"
           >
             추가
           </button>

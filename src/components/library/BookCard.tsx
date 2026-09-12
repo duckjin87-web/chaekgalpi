@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import type { Book } from "../../types";
-import { randomBookmarkColor } from "../../theme";
 
 interface BookCardProps {
   book: Book;
@@ -12,46 +11,82 @@ const statusLabel: Record<Book["status"], string> = {
   완독: "완독",
 };
 
-const statusStyle: Record<Book["status"], string> = {
-  읽고싶음: "bg-amber-100 text-amber-900",
-  읽는중: "bg-emerald-100 text-emerald-900",
-  완독: "bg-stone-200 text-stone-700",
+/** YES24 배지 톤: 진행중=블루, 위시=회색, 완독=레드 */
+const statusBadge: Record<Book["status"], string> = {
+  읽고싶음: "text-stone-500",
+  읽는중: "text-ink",
+  완독: "text-y24red",
 };
 
-function scrapRotation(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  return ((Math.abs(h) % 45) / 10) * (h % 2 === 0 ? 1 : -1);
-}
-
+/** YES24 상품 리스트 행 — 썸네일 좌측, 정보 우측 */
 export default function BookCard({ book }: BookCardProps) {
-  const accent = book.coverUrl ? undefined : randomBookmarkColor();
-  const rotation = scrapRotation(book.id);
+  const isEbook = book.bookType === "전자책";
+  const total = isEbook ? 100 : book.pageCount ?? 0;
+  const current = book.currentPage ?? 0;
+  const progress = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+  const showProgress = book.status === "읽는중" && total > 0;
 
   return (
-    <div className="px-2 pt-4">
-      <Link
-        to={`/book/${book.id}`}
-        className="paper-card group relative flex w-32 shrink-0 flex-col gap-1.5 rounded-sm p-2 pb-2 transition-transform hover:-translate-y-1"
-        style={{ transform: `rotate(${rotation}deg)` }}
-      >
-        <span className="tape tape-tc" />
-        <div
-          className="flex h-44 w-full items-center justify-center overflow-hidden text-center text-sm text-white shadow-inner"
-          style={{ backgroundColor: book.coverUrl ? undefined : accent }}
-        >
-          {book.coverUrl ? (
-            <img src={book.coverUrl} alt={book.title} className="h-full w-full object-cover" />
-          ) : (
-            <span className="px-2 font-serif">{book.title}</span>
-          )}
+    <Link to={`/book/${book.id}`} className="flex gap-3 bg-white px-3 py-3 active:bg-stone-50">
+      {/* 표지 */}
+      <div className="w-[62px] flex-shrink-0">
+        {book.coverUrl ? (
+          <img
+            src={book.coverUrl}
+            alt={book.title}
+            className="block w-full rounded-sm border border-stone-200 object-contain shadow-sm"
+          />
+        ) : (
+          <div className="flex aspect-[3/4] w-full items-center justify-center rounded-sm border border-stone-200 bg-stone-100 text-[10px] text-stone-400">
+            표지 없음
+          </div>
+        )}
+      </div>
+
+      {/* 정보 */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start gap-1.5">
+          <p className="min-w-0 flex-1 text-[14px] font-bold leading-snug text-stone-800">
+            {book.title}
+          </p>
         </div>
-        <span
-          className={`self-center rounded-sm px-2 py-0.5 text-[10px] font-medium tracking-[0.15em] ${statusStyle[book.status]}`}
-        >
-          {statusLabel[book.status]}
-        </span>
-      </Link>
-    </div>
+
+        <p className="y24-meta mt-1 truncate">
+          {book.author}
+          {book.publisher && (
+            <>
+              <span className="sep">|</span>
+              {book.publisher}
+            </>
+          )}
+          {book.publishedDate && (
+            <>
+              <span className="sep">|</span>
+              {book.publishedDate.slice(0, 10)}
+            </>
+          )}
+        </p>
+
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <span className={`y24-badge ${statusBadge[book.status]}`}>
+            {statusLabel[book.status]}
+          </span>
+          {isEbook && <span className="y24-badge text-stone-400">eBook</span>}
+        </div>
+
+        {/* 진행률 — YES24식 얇은 바 */}
+        {showProgress && (
+          <div className="mt-2 flex items-center gap-2">
+            <div className="h-[3px] flex-1 overflow-hidden rounded-full bg-stone-200">
+              <div
+                className="h-full rounded-full bg-[#1a54a6]"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <span className="text-[11px] font-medium text-ink">{progress}%</span>
+          </div>
+        )}
+      </div>
+    </Link>
   );
 }

@@ -96,9 +96,9 @@ export default function QuoteList({ quotes, onChange }: QuoteListProps) {
 
   return (
     <div>
-      <h3 className="font-serif text-sm font-semibold text-stone-700">구절·하이라이트</h3>
+      <h3 className="y24-section-title text-[14px]">구절·하이라이트</h3>
 
-      <div className="mt-2 rounded-lg border border-stone-200 bg-white/70 p-3 shadow-sm">
+      <div className="y24-card mt-2 p-3">
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <button
             onClick={handlePaste}
@@ -108,7 +108,7 @@ export default function QuoteList({ quotes, onChange }: QuoteListProps) {
           </button>
           <button
             onClick={() => fileRef.current?.click()}
-            className="rounded-sm border border-stone-300 bg-white px-2.5 py-1 text-xs text-stone-700"
+            className="rounded-sm border border-[#d9e2ef] bg-white px-2.5 py-1 text-xs text-stone-600"
           >
             📷 사진 첨부
           </button>
@@ -139,14 +139,14 @@ export default function QuoteList({ quotes, onChange }: QuoteListProps) {
           onChange={(e) => setText(e.target.value)}
           rows={4}
           placeholder="전자책에서 복사한 문장을 붙여넣거나 직접 적어보세요."
-          className="w-full rounded border border-stone-300 p-2 text-sm leading-relaxed"
+          className="w-full rounded-sm border border-[#d9e2ef] p-2 text-sm leading-relaxed"
         />
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <input
             value={page}
             onChange={(e) => setPage(e.target.value)}
             placeholder="페이지/진행률"
-            className="min-w-0 flex-1 rounded border border-stone-300 px-2 py-1 text-xs"
+            className="min-w-0 flex-1 rounded-sm border border-[#d9e2ef] px-2 py-1 text-xs"
           />
           {photoUrl && (
             <>
@@ -156,7 +156,7 @@ export default function QuoteList({ quotes, onChange }: QuoteListProps) {
                 className="h-10 w-10 cursor-zoom-in rounded object-cover"
                 onClick={() => setLightbox(photoUrl)}
               />
-              <button onClick={() => setPhotoUrl(undefined)} className="text-xs text-red-500">
+              <button onClick={() => setPhotoUrl(undefined)} className="text-xs text-y24red">
                 제거
               </button>
             </>
@@ -215,7 +215,7 @@ export default function QuoteList({ quotes, onChange }: QuoteListProps) {
                       </option>
                     ))}
                   </select>
-                  <button onClick={() => remove(q.id)} className="text-[10px] text-red-400">
+                  <button onClick={() => remove(q.id)} className="text-[10px] text-y24red">
                     삭제
                   </button>
                 </div>

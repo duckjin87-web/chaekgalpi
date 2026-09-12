@@ -36,7 +36,10 @@ export default function BookDetailPage() {
   const [descExpanded, setDescExpanded] = useState(false);
   const [pageDraft, setPageDraft] = useState<string | null>(null);
   const [celebrating, setCelebrating] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [exporting, setExporting] = useState<string | null>(null);
   const celebrationFiredRef = useRef(false);
+  const review = useLibraryStore((s) => s.getReview(bookId ?? ""));
 
   // 100% 도달 시 자동으로 완독 처리 + 축하 (한 번만)
   useEffect(() => {
@@ -104,6 +107,51 @@ export default function BookDetailPage() {
     navigate("/");
   }
 
+  /** 마인드맵·독후감·생각거리·구절을 한 PDF 로 묶어 저장/공유 */
+  async function handleExport(mode: "download" | "share") {
+    if (!book) return;
+    setExporting(mode === "share" ? "공유 준비 중…" : "PDF 만드는 중…");
+    const originalTab = tab;
+    try {
+      const { buildBookPdf, captureMindMap, downloadBlob, sharePdf } = await import(
+        "../lib/exportPdf"
+      );
+
+      // 마인드맵은 화면에 떠 있어야 캡처되므로 잠시 마인드맵 탭으로 전환
+      let mindMapDataUrl: string | undefined;
+      if (originalTab !== "mindmap") setTab("mindmap");
+      await new Promise((r) => setTimeout(r, originalTab !== "mindmap" ? 700 : 250));
+      mindMapDataUrl = await captureMindMap();
+      if (originalTab !== "mindmap") setTab(originalTab);
+
+      const blob = await buildBookPdf({
+        book,
+        review,
+        quotes: review?.quotes ?? [],
+        prompts: book.readingPrompts?.questions ?? [],
+        answers: book.promptAnswers ?? [],
+        mindMapDataUrl,
+      });
+
+      const safe = book.title.replace(/[\\/:*?"<>|]/g, "_").slice(0, 60);
+      const filename = `책갈피_${safe}.pdf`;
+
+      if (mode === "share") {
+        const shared = await sharePdf(blob, filename, book.title);
+        if (!shared) {
+          alert("이 브라우저는 파일 공유를 지원하지 않아 PDF를 저장했어요.\n저장된 파일을 메일·드라이브에 첨부해 주세요.");
+        }
+      } else {
+        downloadBlob(blob, filename);
+      }
+    } catch (err: any) {
+      alert(`내보내기에 실패했어요.\n${String(err?.message ?? err)}`);
+      setTab(originalTab);
+    } finally {
+      setExporting(null);
+    }
+  }
+
   function commitCurrentPage() {
     if (pageDraft === null) return;
     const n = Number(pageDraft);
@@ -125,12 +173,68 @@ export default function BookDetailPage() {
         <Link to="/" className="text-sm text-stone-500 hover:underline">
           ← 서재로
         </Link>
-        <button
-          onClick={() => setShowInfo((v) => !v)}
-          className="text-xs text-stone-400 hover:text-stone-600"
-        >
-          {showInfo ? "정보 접기 ▲" : "정보 펼치기 ▼"}
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowInfo((v) => !v)}
+            className="text-xs text-stone-400 hover:text-stone-600"
+          >
+            {showInfo ? "정보 접기 ▲" : "정보 펼치기 ▼"}
+          </button>
+          {/* 항상 접근 가능한 메뉴 */}
+          <div className="relative">
+            <button
+              onClick={() => setShowMenu((v) => !v)}
+              className="rounded px-1.5 py-0.5 text-lg leading-none text-stone-500 hover:bg-stone-100"
+              aria-label="메뉴"
+            >
+              ⋮
+            </button>
+            {showMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+                <div className="paper-card absolute right-0 z-50 mt-1 w-40 overflow-hidden rounded-md py-1 text-sm">
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowEditModal(true);
+                    }}
+                    className="block w-full px-3 py-2 text-left text-stone-700 hover:bg-stone-100"
+                  >
+                    ✏️ 정보 수정
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      void handleExport("download");
+                    }}
+                    className="block w-full px-3 py-2 text-left text-stone-700 hover:bg-stone-100"
+                  >
+                    📄 PDF 저장
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      void handleExport("share");
+                    }}
+                    className="block w-full px-3 py-2 text-left text-stone-700 hover:bg-stone-100"
+                  >
+                    📤 공유하기
+                  </button>
+                  <div className="my-1 border-t border-stone-200" />
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      handleDelete();
+                    }}
+                    className="block w-full px-3 py-2 text-left text-red-600 hover:bg-red-50"
+                  >
+                    🗑 책 삭제
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       {showInfo && (
@@ -336,6 +440,16 @@ export default function BookDetailPage() {
           <ReviewEditor bookId={bookId} />
         )}
       </div>
+
+      {exporting && (
+        <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40">
+          <div className="paper-card rounded-lg px-6 py-5 text-center">
+            <p className="text-2xl">📄</p>
+            <p className="mt-2 text-sm font-medium text-stone-700">{exporting}</p>
+            <p className="mt-1 text-xs text-stone-400">잠시만 기다려 주세요</p>
+          </div>
+        </div>
+      )}
 
       {celebrating && (
         <CompletionCelebration

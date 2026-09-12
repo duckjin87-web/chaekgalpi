@@ -46,6 +46,19 @@ export default function BookCard({ book }: BookCardProps) {
             <span className="px-2 font-serif">{book.title}</span>
           )}
         </div>
+        {/* 제목 (2줄까지) */}
+        <p
+          className="px-0.5 text-center font-serif text-[12px] font-bold leading-tight text-stone-800"
+          style={{
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+          title={book.title}
+        >
+          {book.title}
+        </p>
         <span
           className={`self-center rounded-sm px-2 py-0.5 text-[10px] font-medium tracking-[0.15em] ${statusStyle[book.status]}`}
         >

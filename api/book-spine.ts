@@ -210,7 +210,82 @@ async function spineExists(url: string): Promise<{ ok: boolean; bytes?: number }
   }
 }
 
+/**
+ * 진단용: YES24 검색 결과를 서버에서 받을 수 있는 엔드포인트를 탐색.
+ * /api/book-spine?probe=브레이크넥
+ * 각 후보의 상태·길이·검색어 포함 여부·상품번호 추출 결과를 돌려준다.
+ */
+async function probeEndpoints(query: string) {
+  const q = encodeURIComponent(query);
+  const candidates = [
+    // 모바일 내부 목록 API 후보
+    `https://m.yes24.com/search/getSearchList?domain=ALL&query=${q}`,
+    `https://m.yes24.com/Search/GetSearchList?domain=ALL&query=${q}`,
+    `https://m.yes24.com/search/searchList?domain=ALL&query=${q}`,
+    `https://m.yes24.com/search/list?domain=ALL&query=${q}`,
+    `https://m.yes24.com/api/search?query=${q}`,
+    // 데스크톱 내부 목록 API 후보
+    `https://www.yes24.com/Product/Search/GetSearchList?domain=BOOK&query=${q}`,
+    `https://www.yes24.com/product/search/list?domain=BOOK&query=${q}`,
+    `https://www.yes24.com/Product/Search/List?domain=BOOK&query=${q}`,
+    // 자동완성/검색어 서비스 후보
+    `https://ac.yes24.com/ac/search?query=${q}`,
+    `https://www.yes24.com/Templates/FTSearchWord.aspx?query=${q}`,
+    // 구형 검색(서버 렌더링 가능성)
+    `https://www.yes24.com/searchcorner/Search?keywordAd=&keyword=&domain=BOOK&query=${q}`,
+    `https://m.yes24.com/Search/Search?query=${q}`,
+  ];
+
+  const out: unknown[] = [];
+  for (const url of candidates) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 7000);
+    try {
+      const r = await fetch(url, {
+        signal: ctrl.signal,
+        headers: {
+          "User-Agent": UA,
+          Accept: "application/json, text/html;q=0.9, */*;q=0.8",
+          "Accept-Language": "ko-KR,ko;q=0.9",
+          "X-Requested-With": "XMLHttpRequest",
+          Referer: "https://m.yes24.com/",
+        },
+      });
+      const ct = r.headers.get("content-type") ?? "";
+      const body = r.ok ? await r.text() : "";
+      const goods = body ? extractGoodsNoCandidates(body, 4) : [];
+      out.push({
+        url,
+        status: r.status,
+        contentType: ct.slice(0, 40),
+        len: body.length,
+        queryInBody: body.includes(query),
+        goods,
+        head: body.slice(0, 160).replace(/\s+/g, " "),
+      });
+    } catch (e: any) {
+      out.push({ url, error: String(e?.message ?? e).slice(0, 80) });
+    } finally {
+      clearTimeout(t);
+    }
+  }
+  return out;
+}
+
 export default async function handler(req: any, res: any) {
+  // 진단 모드
+  const probe = (req.query?.probe ?? "").toString().trim();
+  if (probe) {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    try {
+      res.status(200).json({ probe, results: await probeEndpoints(probe) });
+    } catch (err: any) {
+      res.status(200).json({ probe, error: String(err?.message ?? err) });
+    }
+    return;
+  }
+
   const isbn = (req.query?.isbn ?? "").toString().replace(/[^0-9Xx]/g, "");
   const title = (req.query?.title ?? "").toString().trim();
   const goodsNoParam = (req.query?.goodsNo ?? "").toString().replace(/[^0-9]/g, "");

@@ -43,8 +43,19 @@ async function fetchText(url: string, timeoutMs = 8000): Promise<string | null> 
  * 검색 결과 HTML 에서 상품번호 후보들을 순서대로 추출.
  * 광고 배너를 피하려고 검색 결과 목록 컨테이너부터 잘라서 본다.
  */
+/** 상품 링크에서 상품번호를 뽑는 정규식 — 모바일(/goods/detail/N), 데스크톱(/Product/Goods/N) 모두 */
+const GOODS_LINK_RE = /\/(?:goods\/detail|Product\/Goods|product\/goods)\/(\d{4,12})/g;
+
 function extractGoodsNoCandidates(html: string, limit = 8): string[] {
-  const markers = ["yesSchList", "goodsList", "itemUnit", "sch-result", "searchResult"];
+  const markers = [
+    "goodsList",
+    "yesSchList",
+    "itemUnit",
+    "sch-result",
+    "searchResult",
+    "sch_list",
+    "list_search",
+  ];
   let scoped = html;
   for (const m of markers) {
     const i = html.indexOf(m);
@@ -53,20 +64,18 @@ function extractGoodsNoCandidates(html: string, limit = 8): string[] {
       break;
     }
   }
-  const out: string[] = [];
-  const re = /\/(?:Product|product)\/(?:Goods|goods)\/(\d{4,12})/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(scoped)) !== null && out.length < limit) {
-    if (!out.includes(m[1])) out.push(m[1]);
-  }
-  // 결과 영역에서 못 찾으면 전체 문서에서라도 뽑는다
-  if (out.length === 0) {
-    const re2 = /\/(?:Product|product)\/(?:Goods|goods)\/(\d{4,12})/g;
-    while ((m = re2.exec(html)) !== null && out.length < limit) {
+  const pick = (src: string): string[] => {
+    const out: string[] = [];
+    const re = new RegExp(GOODS_LINK_RE.source, "g");
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(src)) !== null && out.length < limit) {
       if (!out.includes(m[1])) out.push(m[1]);
     }
-  }
-  return out;
+    return out;
+  };
+  const scopedHits = pick(scoped);
+  // 결과 영역에서 못 찾으면 전체 문서에서라도 뽑는다
+  return scopedHits.length ? scopedHits : pick(html);
 }
 
 /** 문자열에서 숫자/X 만 남겨 ISBN 비교를 하이픈·공백에 영향받지 않게 */
@@ -84,7 +93,9 @@ interface ProductCheck {
 
 /** 해당 상품 페이지에 이 ISBN 이 실제로 들어있는지 확인 (URL 대소문자 두 가지 시도) */
 async function checkProduct(goodsNo: string, isbn: string): Promise<ProductCheck> {
+  // 모바일 상세 페이지 형식 (확인됨): m.yes24.com/goods/detail/{goodsNo}
   const urls = [
+    `https://m.yes24.com/goods/detail/${goodsNo}`,
     `https://www.yes24.com/product/goods/${goodsNo}`,
     `https://www.yes24.com/Product/Goods/${goodsNo}`,
   ];
@@ -137,14 +148,12 @@ async function collectCandidates(
   dbg?: Record<string, unknown>
 ): Promise<string[]> {
   const q = encodeURIComponent(query);
+  // 모바일 검색이 실제로 동작하는 형식 (확인됨): m.yes24.com/search?domain=ALL&query=
   const urls = [
+    `https://m.yes24.com/search?domain=ALL&query=${q}`,
+    `https://m.yes24.com/search?domain=BOOK&query=${q}`,
     `https://www.yes24.com/product/search?domain=BOOK&query=${q}`,
     `https://www.yes24.com/Product/Search?domain=BOOK&query=${q}`,
-    `https://www.yes24.com/product/search?query=${q}`,
-    `https://www.yes24.com/Product/Search?domain=ALL&query=${q}`,
-    `https://m.yes24.com/Search?query=${q}`,
-    `https://m.yes24.com/search?query=${q}`,
-    `https://www.yes24.com/searchcorner/Search?domain=BOOK&query=${q}`,
   ];
   const trace: unknown[] = [];
   for (const url of urls) {

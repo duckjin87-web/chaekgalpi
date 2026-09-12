@@ -32,7 +32,7 @@ const SPINE_STYLES: { bg: string; fg: string }[] = [
 
 const SPINE_HEIGHT_PX = 148;
 /** 책등 조회 로직 버전. 올리면 저장된 책등 결과를 버리고 다시 조회한다. */
-const SPINE_V = 3;
+const SPINE_V = 4;
 
 /** 제목 길이에 따른 책등 두께 (색상 책등 폴백용) */
 function spineWidth(title: string): number {

@@ -12,6 +12,10 @@ export interface Book {
   title: string;
   author: string;
   coverUrl?: string;
+  /** YES24 책등(SIDE) 이미지 URL — 없으면 색상 책등으로 대체 */
+  spineUrl?: string;
+  /** 책등 조회를 이미 시도했는지 (없는 책 반복 조회 방지) */
+  spineChecked?: boolean;
   pageCount?: number;
   currentPage?: number;
   isbn?: string;

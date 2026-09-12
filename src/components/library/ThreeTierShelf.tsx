@@ -1,6 +1,9 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Book } from "../../types";
 import { getDailyRecommendations, type BookRec } from "../../lib/recommendations";
+import { fetchSpineUrl } from "../../lib/bookSpine";
+import { useLibraryStore } from "../../store/useLibraryStore";
 
 interface ThreeTierShelfProps {
   recentBooks: Book[];
@@ -27,43 +30,74 @@ const SPINE_STYLES: { bg: string; fg: string }[] = [
   { bg: "#4a3a5a", fg: "#e5dcbf" },
 ];
 
-const SPINE_HEIGHT_PX = 140;
+const SPINE_HEIGHT_PX = 148;
 
-/** 제목 길이에 따른 책등 두께 (26~46px) */
+/** 제목 길이에 따른 책등 두께 (색상 책등 폴백용) */
 function spineWidth(title: string): number {
   const len = Math.min(title.length, 18);
   return 26 + Math.round(len * 1.1);
 }
-
-/** 세로 텍스트를 한 줄 안에 담기 위한 폰트 크기 */
 function spineFontSize(title: string): number {
-  const usable = SPINE_HEIGHT_PX - 22; // 캡밴드/여백
+  const usable = SPINE_HEIGHT_PX - 22;
   const perChar = usable / title.length;
   return Math.max(8, Math.min(13, Math.round(perChar / 1.05)));
 }
 
+/** 실제 YES24 책등 이미지. 없으면 색상 책등으로 폴백 */
 function BookSpineFromBook({ book }: { book: Book }) {
   const h = stableHash(book.id);
   const style = SPINE_STYLES[h % SPINE_STYLES.length];
-  const width = spineWidth(book.title);
-  const fontSize = spineFontSize(book.title);
   const rotate = ((h % 5) - 2) * 0.35;
+  const [imgFailed, setImgFailed] = useState(false);
+  const useRealSpine = !!book.spineUrl && !imgFailed;
+
+  const shared = {
+    transform: `rotate(${rotate}deg)`,
+    transformOrigin: "bottom center" as const,
+  };
+
+  if (useRealSpine) {
+    return (
+      <Link
+        to={`/book/${book.id}`}
+        className="relative block flex-shrink-0 overflow-hidden rounded-[2px] shadow-[1px_3px_5px_-2px_rgba(20,10,5,0.5)] transition-transform hover:-translate-y-1"
+        style={shared}
+        title={`${book.title}${book.author ? ` — ${book.author}` : ""}`}
+      >
+        <img
+          src={book.spineUrl}
+          alt={book.title}
+          className="block w-auto"
+          style={{ height: SPINE_HEIGHT_PX }}
+          onError={() => setImgFailed(true)}
+          loading="lazy"
+        />
+        {/* 입체감: 좌우 미세 음영 */}
+        <span
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(90deg, rgba(0,0,0,0.22) 0%, rgba(255,255,255,0.10) 10%, rgba(255,255,255,0) 45%, rgba(255,255,255,0.06) 88%, rgba(0,0,0,0.26) 100%)",
+          }}
+        />
+      </Link>
+    );
+  }
 
   return (
     <Link
       to={`/book/${book.id}`}
       className="book-spine group flex flex-shrink-0 flex-col items-center justify-start transition-transform hover:-translate-y-1"
       style={{
-        width,
+        ...shared,
+        width: spineWidth(book.title),
         height: SPINE_HEIGHT_PX,
         backgroundColor: style.bg,
         color: style.fg,
-        transform: `rotate(${rotate}deg)`,
-        transformOrigin: "bottom center",
       }}
       title={`${book.title}${book.author ? ` — ${book.author}` : ""}`}
     >
-      <span className="book-spine-title" style={{ fontSize }}>
+      <span className="book-spine-title" style={{ fontSize: spineFontSize(book.title) }}>
         {book.title}
       </span>
     </Link>
@@ -73,15 +107,13 @@ function BookSpineFromBook({ book }: { book: Book }) {
 function BookSpineFromRec({ rec, idx }: { rec: BookRec; idx: number }) {
   const h = stableHash(rec.title);
   const style = SPINE_STYLES[(h + idx) % SPINE_STYLES.length];
-  const width = spineWidth(rec.title);
-  const fontSize = spineFontSize(rec.title);
   const rotate = ((h % 5) - 2) * 0.35;
 
   return (
     <div
       className="book-spine flex flex-shrink-0 flex-col items-center justify-start"
       style={{
-        width,
+        width: spineWidth(rec.title),
         height: SPINE_HEIGHT_PX,
         backgroundColor: style.bg,
         color: style.fg,
@@ -90,7 +122,7 @@ function BookSpineFromRec({ rec, idx }: { rec: BookRec; idx: number }) {
       }}
       title={`${rec.title} — ${rec.author} · ${rec.genre}`}
     >
-      <span className="book-spine-title" style={{ fontSize }}>
+      <span className="book-spine-title" style={{ fontSize: spineFontSize(rec.title) }}>
         {rec.title}
       </span>
     </div>
@@ -104,7 +136,7 @@ interface TierProps {
 function Tier({ label, children }: TierProps) {
   return (
     <div className="wood-panel relative">
-      <div className="flex h-[172px] items-end gap-[3px] overflow-x-auto overflow-y-hidden px-3 pb-[10px] pt-1">
+      <div className="flex h-[180px] items-end gap-[2px] overflow-x-auto overflow-y-hidden px-3 pb-[10px] pt-1">
         {children}
       </div>
       <span className="wood-label pointer-events-none absolute left-2 top-1">{label}</span>
@@ -115,6 +147,41 @@ function Tier({ label, children }: TierProps) {
 
 export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: ThreeTierShelfProps) {
   const recs = getDailyRecommendations(allBooks);
+  const updateBook = useLibraryStore((s) => s.updateBook);
+  const inFlightRef = useRef<Set<string>>(new Set());
+
+  // ISBN 은 있는데 책등을 아직 조회하지 않은 책들을 순차적으로 백필 (동시 2건)
+  useEffect(() => {
+    const pending = allBooks.filter(
+      (b) => b.isbn && !b.spineChecked && !inFlightRef.current.has(b.id)
+    );
+    if (pending.length === 0) return;
+
+    let cancelled = false;
+    const queue = [...pending];
+
+    async function worker() {
+      while (!cancelled) {
+        const book = queue.shift();
+        if (!book) return;
+        inFlightRef.current.add(book.id);
+        const url = await fetchSpineUrl(book.isbn!);
+        if (cancelled) return;
+        updateBook(book.id, {
+          spineUrl: url ?? undefined,
+          spineChecked: true,
+        });
+      }
+    }
+    // 동시 2개까지만
+    void worker();
+    void worker();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allBooks.map((b) => `${b.id}:${b.spineChecked ? 1 : 0}`).join(",")]);
 
   return (
     <section className="mt-6">

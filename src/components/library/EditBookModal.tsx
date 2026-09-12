@@ -34,7 +34,6 @@ export default function EditBookModal({ book, onClose, onSave }: EditBookModalPr
       publishedDate: publishedDate.trim() || undefined,
       status,
       spineUrl: spineInput.trim() ? spinePreview : undefined,
-      spineChecked: true,
     });
     onClose();
   }

@@ -11,8 +11,8 @@ type Tab = "mindmap" | "review";
 
 const statusStyle: Record<BookStatus, string> = {
   읽고싶음: "bg-stone-100 text-stone-600",
-  읽는중: "bg-[#e8f0fb] text-[#1a54a6]",
-  완독: "bg-[#fdeaec] text-[#e8112d]",
+  읽는중: "bg-emerald-100 text-emerald-700",
+  완독: "bg-amber-100 text-amber-700",
 };
 
 function daysSince(iso?: string): number | null {
@@ -89,7 +89,7 @@ export default function BookDetailPage() {
     return (
       <div className="p-6">
         <p className="text-stone-500">책을 찾을 수 없어요.</p>
-        <Link to="/" className="text-ink hover:underline">
+        <Link to="/" className="text-emerald-700 hover:underline">
           서재로 돌아가기
         </Link>
       </div>
@@ -135,100 +135,88 @@ export default function BookDetailPage() {
 
       {showInfo && (
         <div className="space-y-3 px-5 pt-1">
-            {/* YES24 상품 상세형 헤더: 표지 좌측 + 정보 우측 */}
-            <div className="y24-card mt-2 flex gap-4 p-4">
-                <div className="w-[104px] flex-shrink-0">
+            {/* 매거진 화보형 헤더 */}
+            <div className="relative mt-2">
+              {/* 뒤에 깔린 잉크색 종이 레이어 */}
+              <div className="absolute inset-0 translate-x-1 translate-y-1.5 rotate-[1.2deg] rounded-sm bg-[#22335a]/85" />
+              <div className="paper-card relative flex gap-4 rounded-sm p-4">
+                <div className="relative w-[110px] flex-shrink-0">
+                  <span className="tape tape-tl" />
                   {book.coverUrl ? (
                     <img
                       src={book.coverUrl}
                       alt={book.title}
-                      className="block w-full rounded-sm border border-stone-200 object-contain shadow-sm"
+                      className="block w-full rounded-sm object-contain shadow-md"
                     />
                   ) : (
-                    <div className="flex aspect-[3/4] w-full items-center justify-center rounded-sm border border-stone-200 bg-stone-100 text-2xl">
+                    <div className="flex aspect-[3/4] w-full items-center justify-center rounded-sm bg-gradient-to-br from-stone-300 to-stone-400 text-3xl shadow-md">
                       📖
                     </div>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h1 className="text-[19px] font-bold leading-snug text-stone-800">
+                  <p className="text-[9px] tracking-[0.35em] text-stone-400">NOW READING</p>
+                  <h1 className="mt-0.5 font-serif text-2xl font-black leading-tight tracking-tight text-ink">
                     {book.title}
                   </h1>
-                  <p className="y24-meta mt-1.5">
-                    {book.author}
-                    {book.publisher && (
-                      <>
-                        <span className="sep">|</span>
-                        {book.publisher}
-                      </>
-                    )}
-                    {book.publishedDate && (
-                      <>
-                        <span className="sep">|</span>
-                        {book.publishedDate.slice(0, 10)}
-                      </>
-                    )}
-                  </p>
+                  <p className="mt-1 text-sm text-stone-600">{book.author}</p>
+                  {book.publisher && (
+                    <p className="text-xs tracking-wide text-stone-400">{book.publisher}</p>
+                  )}
                   <button
                     onClick={handleStatusClick}
-                    className={`mt-2.5 inline-block rounded-sm px-2 py-0.5 text-[11px] font-medium ${statusStyle[book.status]}`}
+                    className={`mt-2 inline-block rounded-sm px-2 py-0.5 text-[11px] font-medium tracking-[0.15em] transition-transform hover:scale-105 ${statusStyle[book.status]}`}
                     title={book.status === "완독" ? "탭해서 되돌리기" : "탭해서 완독으로 표시"}
                   >
                     {book.status}
                   </button>
-                  <div className="mt-3 flex gap-2 text-xs">
+                  <div className="mt-2 flex gap-3 text-xs">
                     <button
                       onClick={() => setShowEditModal(true)}
-                      className="rounded-sm border border-[#d9e2ef] bg-white px-2.5 py-1 text-stone-600"
+                      className="text-stone-500 hover:underline"
                     >
                       정보 수정
                     </button>
-                    <button
-                      onClick={handleDelete}
-                      className="rounded-sm border border-[#f3c6cc] bg-white px-2.5 py-1 text-y24red"
-                    >
+                    <button onClick={handleDelete} className="text-red-500 hover:underline">
                       삭제
                     </button>
                   </div>
                 </div>
+              </div>
             </div>
 
             {/* 정보 칩 */}
-            <div className="y24-card grid grid-cols-3 divide-x divide-[#edf1f6]">
-              <div className="px-2 py-2.5 text-center">
-                <p className="text-[11px] text-stone-400">책 유형</p>
-                <p className="mt-0.5 text-[13px] font-medium text-stone-700">
-                  {book.bookType ?? "종이책"}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="paper-card rounded-lg border border-stone-200/60 p-2.5 text-center">
+                <p className="text-[11px] text-stone-400">📚 책 유형</p>
+                <p className="mt-0.5 text-sm font-medium text-stone-700">{book.bookType ?? "종이책"}</p>
+              </div>
+              <div className="paper-card rounded-lg border border-stone-200/60 p-2.5 text-center">
+                <p className="text-[11px] text-stone-400">{isEbook ? "📖 진도 단위" : "📖 전체 페이지"}</p>
+                <p className="mt-0.5 text-sm font-medium text-stone-700">
+                  {isEbook ? "% (0~100)" : book.pageCount ? `p. ${book.pageCount}` : "—"}
                 </p>
               </div>
-              <div className="px-2 py-2.5 text-center">
-                <p className="text-[11px] text-stone-400">
-                  {isEbook ? "진도 단위" : "전체 페이지"}
-                </p>
-                <p className="mt-0.5 text-[13px] font-medium text-stone-700">
-                  {isEbook ? "0~100%" : book.pageCount ? `${book.pageCount}p` : "—"}
-                </p>
-              </div>
-              <div className="px-2 py-2.5 text-center">
-                <p className="text-[11px] text-stone-400">출판</p>
-                <p className="mt-0.5 text-[13px] font-medium text-stone-700">
-                  {book.publishedDate?.slice(0, 10) ?? "—"}
+              <div className="paper-card rounded-lg border border-stone-200/60 p-2.5 text-center">
+                <p className="text-[11px] text-stone-400">🗓 출판</p>
+                <p className="mt-0.5 text-sm font-medium text-stone-700">
+                  {book.publishedDate ?? "—"}
                 </p>
               </div>
             </div>
 
             {/* 독서 진행률 */}
             {total > 0 && (
-              <div className="y24-card p-4">
+              <div className="rounded-xl paper-card border border-stone-200/60 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-stone-500">독서 진행률</span>
                   {days !== null && (
-                    <span className="text-xs font-semibold text-y24red">{days}일째</span>
+                    <span className="text-xs font-semibold text-amber-600">{days}일째</span>
                   )}
                 </div>
                 <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
                   <div
-                    className="h-full rounded-full bg-[#1a54a6] transition-all"
+                    className="h-full rounded-full bg-emerald-600 transition-all"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
@@ -244,17 +232,17 @@ export default function BookDetailPage() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter") (e.target as HTMLInputElement).blur();
                     }}
-                    className="w-16 rounded-sm border border-[#d9e2ef] px-1.5 py-0.5 text-center font-semibold text-stone-800"
+                    className="w-16 rounded border border-stone-300 px-1.5 py-0.5 text-center font-semibold text-stone-800"
                   />
                   <span className="text-stone-400">{isEbook ? "%" : `/ ${total}`}</span>
-                  <span className="ml-auto font-semibold text-ink">{progress}%</span>
+                  <span className="ml-auto font-semibold text-emerald-700">{progress}%</span>
                 </div>
               </div>
             )}
 
             {/* 책 소개 */}
             {book.description && (
-              <div className="y24-card p-4">
+              <div className="rounded-xl paper-card border border-stone-200/60 p-4">
                 <p className="mb-1.5 text-xs font-medium text-stone-500">책 소개</p>
                 <p
                   className={`whitespace-pre-line text-sm leading-relaxed text-stone-700 ${
@@ -276,7 +264,7 @@ export default function BookDetailPage() {
 
             {/* 목차 */}
             {book.toc && book.toc.length > 0 && (
-              <details className="y24-card p-4">
+              <details className="rounded-xl paper-card border border-stone-200/60 p-4">
                 <summary className="cursor-pointer text-xs font-medium text-stone-500">
                   목차 ({book.toc.length})
                 </summary>
@@ -319,23 +307,19 @@ export default function BookDetailPage() {
       )}
 
       {/* 탭 (스크롤 시 상단 고정) */}
-      <div className="paper-texture sticky top-[38px] z-20 mt-3 flex gap-5 border-b border-[#d9e2ef] px-5">
+      <div className="paper-texture sticky top-[38px] z-20 mt-3 flex gap-4 border-b border-stone-200 px-5">
         <button
           onClick={() => setTab("mindmap")}
-          className={`-mb-px border-b-[3px] px-1 pb-2 text-[15px] ${
-            tab === "mindmap"
-              ? "border-[#1a54a6] font-bold text-ink"
-              : "border-transparent text-stone-500"
+          className={`pb-2 font-serif text-sm tracking-wide ${
+            tab === "mindmap" ? "border-ink text-ink border-b-2 font-bold" : "text-stone-500"
           }`}
         >
           마인드맵
         </button>
         <button
           onClick={() => setTab("review")}
-          className={`-mb-px border-b-[3px] px-1 pb-2 text-[15px] ${
-            tab === "review"
-              ? "border-[#1a54a6] font-bold text-ink"
-              : "border-transparent text-stone-500"
+          className={`pb-2 font-serif text-sm tracking-wide ${
+            tab === "review" ? "border-ink text-ink border-b-2 font-bold" : "text-stone-500"
           }`}
         >
           독후감

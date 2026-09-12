@@ -6,7 +6,7 @@ body {
   margin: 0;
   font-family: "Gowun Dodum", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic",
     sans-serif;
-  background-color: #ece0c2;
+  background-color: #ffffff;
   color: #3d382f;
 }
 
@@ -107,28 +107,28 @@ body {
 @layer components {
   /* 종이 질감 배경: 따뜻한 크림 + 얼룩(mottle) + 결(fiber) + 그레인 */
   .paper-texture {
-    background-color: #ece0c2;
+    background-color: #ffffff;
     background-image:
-      radial-gradient(150% 110% at 50% -15%, rgba(255, 253, 246, 0.85), rgba(236, 224, 194, 0) 55%),
-      radial-gradient(120% 120% at 100% 100%, rgba(150, 125, 80, 0.08), rgba(236, 224, 194, 0) 60%),
-      repeating-linear-gradient(90deg, rgba(120, 96, 55, 0.035) 0 1px, transparent 1px 4px),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)' opacity='0.07'/%3E%3C/svg%3E"),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.10'/%3E%3C/svg%3E");
+      radial-gradient(150% 110% at 50% -15%, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0) 55%),
+      radial-gradient(120% 120% at 100% 100%, rgba(150, 125, 80, 0.03), rgba(255, 255, 255, 0) 60%),
+      repeating-linear-gradient(90deg, rgba(120, 96, 55, 0.012) 0 1px, transparent 1px 4px),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)' opacity='0.025'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
     background-repeat: no-repeat, no-repeat, repeat, repeat, repeat;
   }
 
   /* 종이 카드: 미색 종이 + 결/그레인 + 책상 위 한 장 느낌의 그림자 */
   .paper-card {
     position: relative;
-    background-color: #fdf8ea;
+    background-color: #ffffff;
     background-image:
       repeating-linear-gradient(90deg, rgba(120, 96, 55, 0.02) 0 1px, transparent 1px 4px),
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n2'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n2)' opacity='0.05'/%3E%3C/svg%3E");
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.75),
-      inset 0 0 0 1px rgba(120, 96, 55, 0.06),
-      0 2px 3px rgba(70, 58, 38, 0.09),
-      0 16px 28px -14px rgba(70, 58, 38, 0.35);
+      inset 0 0 0 1px rgba(120, 96, 55, 0.14),
+      0 1px 2px rgba(70, 58, 38, 0.07),
+      0 10px 22px -14px rgba(70, 58, 38, 0.28);
   }
 
   /* 밝은 원목(오크) 책장 프레임 — 두꺼운 프레임 + 세로 결 */
@@ -295,90 +295,18 @@ body {
     75% { transform: translateX(1px); }
   }
 
-  /* ── YES24 팔레트 ──
-     블루 #1a54a6 (브랜드), 딥블루 #0f3d7d (호버), 레드 #e8112d (강조/가격) */
+  /* 잉크 네이비 (매거진 포인트 컬러) */
   .text-ink {
-    color: #1a54a6;
+    color: #22335a;
   }
   .bg-ink {
-    background-color: #1a54a6;
+    background-color: #22335a;
   }
   .bg-ink:hover {
-    background-color: #0f3d7d;
+    background-color: #1a2847;
   }
   .border-ink {
-    border-color: #1a54a6;
-  }
-  .text-y24red {
-    color: #e8112d;
-  }
-  .bg-y24red {
-    background-color: #e8112d;
-  }
-  .border-y24 {
-    border-color: #d9e2ef;
-  }
-
-  /* YES24 섹션 헤더: 좌측 블루 액센트 바 + 굵은 제목 */
-  .y24-section-title {
-    position: relative;
-    padding-left: 10px;
-    font-weight: 700;
-    color: #1f2937;
-  }
-  .y24-section-title::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 3px;
-    height: 15px;
-    background: #1a54a6;
-    border-radius: 2px;
-  }
-
-  /* YES24 리스트 카드: 흰 배경 + 얇은 회색 테두리 */
-  .y24-card {
-    background: #ffffff;
-    border: 1px solid #e3e8ef;
-    border-radius: 4px;
-    box-shadow: 0 1px 2px rgba(15, 30, 60, 0.04);
-  }
-  /* 리스트 행 사이 얇은 구분선 */
-  .y24-divide > * + * {
-    border-top: 1px solid #edf1f6;
-  }
-
-  /* YES24 배지: 작은 사각 라벨 */
-  .y24-badge {
-    display: inline-block;
-    padding: 1px 5px;
-    font-size: 10px;
-    line-height: 1.5;
-    border-radius: 2px;
-    border: 1px solid currentColor;
-    letter-spacing: 0.02em;
-  }
-  .y24-badge-solid {
-    display: inline-block;
-    padding: 2px 6px;
-    font-size: 10px;
-    line-height: 1.4;
-    border-radius: 2px;
-    color: #fff;
-    background: #1a54a6;
-  }
-
-  /* YES24 스타일 메타 정보 (저자 · 출판사 · 날짜) */
-  .y24-meta {
-    font-size: 12px;
-    color: #6b7684;
-    line-height: 1.5;
-  }
-  .y24-meta .sep {
-    color: #c4ccd8;
-    margin: 0 4px;
+    border-color: #22335a;
   }
 
   /* 찢긴 종이 가장자리 (장식용 구분선) */

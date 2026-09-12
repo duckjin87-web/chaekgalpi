@@ -83,15 +83,23 @@ export default function LibraryPage() {
 
   return (
     <div className="paper-texture min-h-screen px-5 pb-6 pt-4">
-      {/* YES24식 헤더: 블루 로고타입 + 하단 굵은 블루 라인 */}
       <header className="mb-3">
+        <p className="text-[9px] font-medium tracking-[0.4em] text-ink">READING JOURNAL</p>
         <div className="flex items-end justify-between">
-          <h1 className="font-serif text-[30px] font-black leading-none tracking-tight text-ink">
+          <h1 className="font-serif text-4xl font-black leading-none tracking-tight text-ink">
             책갈피
           </h1>
-          <span className="y24-badge-solid mb-1">내 서재 {books.length}권</span>
+          <div className="pb-0.5 text-right text-[9px] leading-tight tracking-[0.22em] text-stone-500">
+            <p>ONE PAGE,</p>
+            <p>MY STORY.</p>
+          </div>
         </div>
-        <div className="mt-2 border-b-2 border-[#1a54a6]" />
+        <div className="mt-1.5 flex items-center justify-between border-t-2 border-ink pt-1 text-[9px] tracking-[0.2em] text-stone-500">
+          <span>나의 서재 · ARCHIVE</span>
+          <span>
+            ISSUE NO. {books.length} · {new Date().getFullYear()}
+          </span>
+        </div>
       </header>
       <LibraryToolbar
         search={search}
@@ -106,14 +114,14 @@ export default function LibraryPage() {
         onMonthFilterChange={setMonthFilter}
       />
 
-      {/* 읽는 중 · 읽고 싶은 책 — YES24 상품 리스트 레이아웃 */}
+      {/* 상단: 읽는 중 · 읽고 싶은 책 (카드 = 표지 + 상태만) */}
       {inProgressBooks.length > 0 && (
         <div className="mb-6">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="y24-section-title text-[15px]">읽는 중 · 읽고 싶은 책</p>
-            <span className="text-[12px] text-stone-400">{inProgressBooks.length}건</span>
+          <div className="mb-1 flex items-baseline gap-2">
+            <p className="font-serif text-base font-bold text-ink">읽는 중 · 읽고 싶은 책</p>
+            <span className="text-[9px] tracking-[0.3em] text-stone-400">ON MY DESK</span>
           </div>
-          <div className="y24-card y24-divide overflow-hidden">
+          <div className="flex gap-2 overflow-x-auto pb-3">
             {inProgressBooks.map((book) => (
               <BookCard key={book.id} book={book} />
             ))}
@@ -122,9 +130,7 @@ export default function LibraryPage() {
       )}
 
       {filteredBooks.length === 0 && (
-        <div className="y24-card mb-4 px-4 py-8 text-center text-sm text-stone-400">
-          조건에 맞는 책이 없어요.
-        </div>
+        <p className="mb-4 text-sm text-stone-400">조건에 맞는 책이 없어요.</p>
       )}
 
       {/* 하단: 3단 목재 책장 */}

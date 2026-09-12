@@ -32,13 +32,13 @@ export default function LibraryToolbar({
       <input
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
-        placeholder="제목·저자 검색"
-        className="min-w-0 flex-1 rounded-sm border-2 border-[#1a54a6] bg-white px-2.5 py-1.5 text-sm outline-none placeholder:text-stone-400"
+        placeholder="검색"
+        className="min-w-0 flex-1 rounded border border-stone-300 px-2 py-1 text-sm"
       />
       <select
         value={statusFilter}
         onChange={(e) => onStatusFilterChange(e.target.value as BookStatus | "전체")}
-        className="rounded-sm border border-[#d9e2ef] bg-white px-2 py-1.5 text-sm text-stone-700"
+        className="rounded border border-stone-300 px-2 py-1.5 text-sm"
       >
         <option value="전체">전체</option>
         <option value="읽고싶음">읽고 싶음</option>
@@ -52,7 +52,7 @@ export default function LibraryToolbar({
             onChange={(e) =>
               onYearFilterChange!(e.target.value === "전체" ? "전체" : Number(e.target.value))
             }
-            className="rounded-sm border border-[#d9e2ef] bg-white px-2 py-1.5 text-sm text-stone-700"
+            className="rounded border border-stone-300 px-2 py-1.5 text-sm"
           >
             <option value="전체">연도 전체</option>
             {years!.map((y) => (
@@ -66,7 +66,7 @@ export default function LibraryToolbar({
             onChange={(e) =>
               onMonthFilterChange!(e.target.value === "전체" ? "전체" : Number(e.target.value))
             }
-            className="rounded-sm border border-[#d9e2ef] bg-white px-2 py-1.5 text-sm text-stone-700"
+            className="rounded border border-stone-300 px-2 py-1.5 text-sm"
           >
             <option value="전체">월 전체</option>
             {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
@@ -79,7 +79,7 @@ export default function LibraryToolbar({
       )}
       <button
         onClick={onAddClick}
-        className="bg-ink rounded-sm px-3 py-1.5 text-xs font-medium tracking-wide text-white"
+        className="bg-ink rounded-sm px-2.5 py-1 text-xs tracking-wide text-white shadow"
       >
         + 책 추가
       </button>

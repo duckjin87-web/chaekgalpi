@@ -323,7 +323,68 @@ async function probeEndpoints(query: string) {
   return out;
 }
 
+/**
+ * 진단용: ISBN 을 그대로 넣는 이미지 URL 패턴을 탐색.
+ * 검색 없이 ISBN 만으로 책등을 얻을 수 있는 경로가 있으면 완전 자동화 가능.
+ * /api/book-spine?imgprobe=9791193937198
+ */
+async function probeImagePatterns(isbn: string) {
+  const patterns: string[] = [
+    // 교보문고 (이미지 경로에 ISBN 사용)
+    `https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/${isbn}.jpg`,
+    `https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/${isbn}_side.jpg`,
+    `https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/${isbn}_s.jpg`,
+    `https://contents.kyobobook.co.kr/sih/fit-in/458x0/spine/${isbn}.jpg`,
+    `https://contents.kyobobook.co.kr/sih/fit-in/458x0/side/${isbn}.jpg`,
+    `https://contents.kyobobook.co.kr/pdt/${isbn}.jpg`,
+    `https://contents.kyobobook.co.kr/pdt/${isbn}_side.jpg`,
+    // 알라딘 (ISBN 기반 커버 엔드포인트)
+    `https://image.aladin.co.kr/cover/cover/${isbn}_1.jpg`,
+    `https://image.aladin.co.kr/cover/spine/${isbn}_1.jpg`,
+    `https://image.aladin.co.kr/cover/side/${isbn}_1.jpg`,
+    // YES24 (ISBN 을 goodsNo 자리에 — 가능성 낮지만 확인)
+    `https://image.yes24.com/goods/${isbn}/SIDE/XL`,
+    // 참고: 앞표지가 ISBN 으로 되는지 (패턴 유효성 확인용 대조군)
+    `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`,
+  ];
+
+  const out: unknown[] = [];
+  for (const url of patterns) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    try {
+      const r = await fetch(url, {
+        signal: ctrl.signal,
+        headers: { "User-Agent": UA, Accept: "image/*" },
+      });
+      let bytes = 0;
+      if (r.ok) bytes = (await r.arrayBuffer()).byteLength;
+      out.push({
+        url,
+        status: r.status,
+        contentType: (r.headers.get("content-type") ?? "").slice(0, 30),
+        bytes,
+        looksLikeImage: r.ok && bytes > 1200,
+      });
+    } catch (e: any) {
+      out.push({ url, error: String(e?.message ?? e).slice(0, 60) });
+    } finally {
+      clearTimeout(t);
+    }
+  }
+  return out;
+}
+
 export default async function handler(req: any, res: any) {
+  // 진단 모드: ISBN 기반 이미지 URL 패턴 탐색
+  const imgprobe = (req.query?.imgprobe ?? "").toString().replace(/[^0-9Xx]/g, "");
+  if (imgprobe) {
+    res.setHeader("Content-Type", "application/json; charset=utf-8");
+    res.setHeader("Cache-Control", "no-store");
+    res.status(200).json({ isbn: imgprobe, results: await probeImagePatterns(imgprobe) });
+    return;
+  }
+
   // 진단 모드
   const probe = (req.query?.probe ?? "").toString().trim();
   if (probe) {

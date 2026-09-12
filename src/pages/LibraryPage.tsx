@@ -138,6 +138,7 @@ export default function LibraryPage() {
         recentBooks={recentFinished}
         oldBooks={olderFinished}
         allBooks={books}
+        onAddClick={() => setShowAddModal(true)}
       />
 
       {showAddModal && (

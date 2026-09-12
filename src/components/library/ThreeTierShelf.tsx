@@ -71,6 +71,7 @@ function BookSpineFromBook({ book }: { book: Book }) {
           style={{ height: SPINE_HEIGHT_PX }}
           onError={() => setImgFailed(true)}
           loading="lazy"
+          referrerPolicy="no-referrer"
         />
         {/* 입체감: 좌우 미세 음영 */}
         <span
@@ -153,7 +154,7 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
   // ISBN 은 있는데 책등을 아직 조회하지 않은 책들을 순차적으로 백필 (동시 2건)
   useEffect(() => {
     const pending = allBooks.filter(
-      (b) => b.isbn && !b.spineChecked && !inFlightRef.current.has(b.id)
+      (b) => (b.isbn || b.title) && !b.spineChecked && !inFlightRef.current.has(b.id)
     );
     if (pending.length === 0) return;
 
@@ -165,7 +166,7 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
         const book = queue.shift();
         if (!book) return;
         inFlightRef.current.add(book.id);
-        const url = await fetchSpineUrl(book.isbn!);
+        const url = await fetchSpineUrl(book.isbn, book.title);
         if (cancelled) return;
         updateBook(book.id, {
           spineUrl: url ?? undefined,

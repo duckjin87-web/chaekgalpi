@@ -50,14 +50,14 @@ function extractGoodsNo(html: string): string | null {
   return null;
 }
 
-/** ISBN 으로 YES24 상품번호 찾기 (검색 경로 여러 개 시도) */
-async function findGoodsNo(isbn: string): Promise<string | null> {
+/** 검색어(ISBN 또는 제목)로 YES24 상품번호 찾기 */
+async function findGoodsNo(query: string): Promise<string | null> {
+  const q = encodeURIComponent(query);
   const candidates = [
-    `https://www.yes24.com/product/search?domain=BOOK&query=${isbn}`,
-    `https://www.yes24.com/Product/Search?domain=BOOK&query=${isbn}`,
-    `https://www.yes24.com/Product/Search?domain=ALL&query=${isbn}`,
-    `https://m.yes24.com/Search?query=${isbn}`,
-    `https://www.yes24.com/searchcorner/Search?keywordAd=&keyword=&domain=BOOK&qdomain=%C0%FC%C3%BC&query=${isbn}`,
+    `https://www.yes24.com/product/search?domain=BOOK&query=${q}`,
+    `https://www.yes24.com/Product/Search?domain=BOOK&query=${q}`,
+    `https://www.yes24.com/Product/Search?domain=ALL&query=${q}`,
+    `https://m.yes24.com/Search?query=${q}`,
   ];
   for (const url of candidates) {
     const html = await fetchText(url);
@@ -98,10 +98,11 @@ async function spineExists(url: string): Promise<boolean> {
 
 export default async function handler(req: any, res: any) {
   const isbn = (req.query?.isbn ?? "").toString().replace(/[^0-9Xx]/g, "");
+  const title = (req.query?.title ?? "").toString().trim();
   const goodsNoParam = (req.query?.goodsNo ?? "").toString().replace(/[^0-9]/g, "");
 
-  if (!isbn && !goodsNoParam) {
-    res.status(400).json({ error: "isbn 또는 goodsNo 파라미터가 필요합니다." });
+  if (!isbn && !title && !goodsNoParam) {
+    res.status(400).json({ error: "isbn, title 또는 goodsNo 파라미터가 필요합니다." });
     return;
   }
 
@@ -110,7 +111,10 @@ export default async function handler(req: any, res: any) {
   res.setHeader("Cache-Control", "public, s-maxage=2592000, stale-while-revalidate=2592000");
 
   try {
-    const goodsNo = goodsNoParam || (await findGoodsNo(isbn));
+    // ISBN 우선, 없거나 못 찾으면 제목으로 재시도
+    let goodsNo = goodsNoParam;
+    if (!goodsNo && isbn) goodsNo = (await findGoodsNo(isbn)) ?? "";
+    if (!goodsNo && title) goodsNo = (await findGoodsNo(title)) ?? "";
     if (!goodsNo) {
       res.status(200).json({ spineUrl: null, reason: "YES24 상품번호를 찾지 못했어요." });
       return;

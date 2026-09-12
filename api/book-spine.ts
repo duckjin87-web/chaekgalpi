@@ -140,9 +140,12 @@ async function collectCandidates(
   const urls = [
     `https://www.yes24.com/product/search?domain=BOOK&query=${q}`,
     `https://www.yes24.com/Product/Search?domain=BOOK&query=${q}`,
+    `https://www.yes24.com/product/search?query=${q}`,
+    `https://www.yes24.com/Product/Search?domain=ALL&query=${q}`,
     `https://m.yes24.com/Search?query=${q}`,
+    `https://m.yes24.com/search?query=${q}`,
+    `https://www.yes24.com/searchcorner/Search?domain=BOOK&query=${q}`,
   ];
-  const all: string[] = [];
   const trace: unknown[] = [];
   for (const url of urls) {
     const html = await fetchText(url);
@@ -150,20 +153,29 @@ async function collectCandidates(
       trace.push({ url, ok: false });
       continue;
     }
+    // 검색이 실제로 먹혔는지 = 검색어가 결과 HTML 에 있는지로 판정.
+    // 없으면 YES24 기본/광고 페이지를 받은 것이므로 그 후보는 절대 쓰지 않는다.
+    const queryInHtml = html.includes(query);
     const found = extractGoodsNoCandidates(html);
     trace.push({
       url,
       ok: true,
       htmlLen: html.length,
-      found,
-      // 검색어가 결과 HTML 에 들어있는지 (검색 자체가 먹혔는지 확인용)
-      queryInHtml: html.includes(query),
+      queryInHtml,
+      foundCount: found.length,
+      sample: found.slice(0, 4),
     });
-    for (const c of found) if (!all.includes(c)) all.push(c);
-    if (all.length >= 8) break;
+    if (queryInHtml && found.length) {
+      if (dbg) dbg.searchTrace = trace;
+      return found;
+    }
   }
-  if (dbg) dbg.searchTrace = trace;
-  return all;
+  if (dbg) {
+    dbg.searchTrace = trace;
+    dbg.searchNote =
+      "검색어가 포함된 결과 페이지를 얻지 못했습니다 (YES24 검색이 JS로 렌더링되거나 URL 형식이 다를 수 있음).";
+  }
+  return [];
 }
 
 /** 책등 이미지가 실제로 존재하는지 확인 (플레이스홀더/404 걸러내기) */

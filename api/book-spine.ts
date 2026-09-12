@@ -69,15 +69,73 @@ function extractGoodsNoCandidates(html: string, limit = 8): string[] {
   return out;
 }
 
-/** 해당 상품 페이지에 이 ISBN 이 실제로 들어있는지 확인 */
-async function productMatchesIsbn(goodsNo: string, isbn: string): Promise<boolean> {
-  const html = await fetchText(`https://www.yes24.com/product/goods/${goodsNo}`, 7000);
-  if (!html) return false;
-  return html.includes(isbn);
+/** 문자열에서 숫자/X 만 남겨 ISBN 비교를 하이픈·공백에 영향받지 않게 */
+function normalizeForIsbn(s: string): string {
+  return s.replace(/[^0-9Xx]/g, "");
+}
+
+interface ProductCheck {
+  goodsNo: string;
+  url?: string;
+  htmlLen?: number;
+  isbnFound?: boolean;
+  isbnSnippet?: string;
+}
+
+/** 해당 상품 페이지에 이 ISBN 이 실제로 들어있는지 확인 (URL 대소문자 두 가지 시도) */
+async function checkProduct(goodsNo: string, isbn: string): Promise<ProductCheck> {
+  const urls = [
+    `https://www.yes24.com/product/goods/${goodsNo}`,
+    `https://www.yes24.com/Product/Goods/${goodsNo}`,
+  ];
+  for (const url of urls) {
+    const html = await fetchText(url, 10000);
+    if (!html) continue;
+
+    // 1) 원문 그대로 포함되는지
+    let found = html.includes(isbn);
+    // 2) 하이픈 등이 섞인 표기 대비: ISBN 주변 영역만 정규화해서 비교
+    if (!found) {
+      const idx = html.search(/ISBN/i);
+      if (idx >= 0) {
+        const around = html.slice(idx, idx + 4000);
+        found = normalizeForIsbn(around).includes(isbn);
+      }
+    }
+    // 3) 그래도 없으면 문서 전체 정규화 (비용 크지만 최후 수단)
+    if (!found) {
+      found = normalizeForIsbn(html).includes(isbn);
+    }
+
+    const idx2 = html.search(/ISBN/i);
+    return {
+      goodsNo,
+      url,
+      htmlLen: html.length,
+      isbnFound: found,
+      isbnSnippet:
+        idx2 >= 0
+          ? stripTagsShort(html.slice(idx2, idx2 + 400))
+          : "(페이지에 ISBN 문자열 없음)",
+    };
+  }
+  return { goodsNo, isbnFound: false, isbnSnippet: "(상품 페이지 로드 실패)" };
+}
+
+function stripTagsShort(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 300);
 }
 
 /** 검색 페이지들에서 상품번호 후보 모으기 */
-async function collectCandidates(query: string): Promise<string[]> {
+async function collectCandidates(
+  query: string,
+  dbg?: Record<string, unknown>
+): Promise<string[]> {
   const q = encodeURIComponent(query);
   const urls = [
     `https://www.yes24.com/product/search?domain=BOOK&query=${q}`,
@@ -85,14 +143,26 @@ async function collectCandidates(query: string): Promise<string[]> {
     `https://m.yes24.com/Search?query=${q}`,
   ];
   const all: string[] = [];
+  const trace: unknown[] = [];
   for (const url of urls) {
     const html = await fetchText(url);
-    if (!html) continue;
-    for (const c of extractGoodsNoCandidates(html)) {
-      if (!all.includes(c)) all.push(c);
+    if (!html) {
+      trace.push({ url, ok: false });
+      continue;
     }
+    const found = extractGoodsNoCandidates(html);
+    trace.push({
+      url,
+      ok: true,
+      htmlLen: html.length,
+      found,
+      // 검색어가 결과 HTML 에 들어있는지 (검색 자체가 먹혔는지 확인용)
+      queryInHtml: html.includes(query),
+    });
+    for (const c of found) if (!all.includes(c)) all.push(c);
     if (all.length >= 8) break;
   }
+  if (dbg) dbg.searchTrace = trace;
   return all;
 }
 
@@ -139,33 +209,38 @@ export default async function handler(req: any, res: any) {
     let goodsNo = goodsNoParam;
 
     if (!goodsNo && isbn) {
-      const candidates = await collectCandidates(isbn);
+      const candidates = await collectCandidates(isbn, dbg);
       dbg.isbnCandidates = candidates;
-      // 광고 상품이 섞여 있으므로 ISBN 이 실제로 들어있는 상품만 채택
+      const checks: ProductCheck[] = [];
       for (const c of candidates.slice(0, 5)) {
-        if (await productMatchesIsbn(c, isbn)) {
+        const chk = await checkProduct(c, isbn);
+        checks.push(chk);
+        if (chk.isbnFound) {
           goodsNo = c;
           dbg.matchedBy = "isbn-verified";
           break;
         }
       }
+      dbg.isbnChecks = checks;
       if (!goodsNo) dbg.isbnVerifyResult = "후보 중 ISBN 일치 상품 없음";
     }
 
     if (!goodsNo && title) {
-      const candidates = await collectCandidates(title);
+      const candidates = await collectCandidates(title, dbg);
       dbg.titleCandidates = candidates;
-      // 제목 검색은 ISBN 대조가 불가하므로, ISBN 이 있으면 그걸로 검증 시도
       if (isbn) {
+        const checks: ProductCheck[] = [];
         for (const c of candidates.slice(0, 5)) {
-          if (await productMatchesIsbn(c, isbn)) {
+          const chk = await checkProduct(c, isbn);
+          checks.push(chk);
+          if (chk.isbnFound) {
             goodsNo = c;
             dbg.matchedBy = "title-search+isbn-verified";
             break;
           }
         }
+        dbg.titleChecks = checks;
       }
-      // ISBN 이 아예 없는 책은 검색 결과 첫 상품을 사용 (검증 불가)
       if (!goodsNo && !isbn && candidates.length) {
         goodsNo = candidates[0];
         dbg.matchedBy = "title-first(unverified)";

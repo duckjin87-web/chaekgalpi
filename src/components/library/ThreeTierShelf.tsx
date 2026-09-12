@@ -31,6 +31,8 @@ const SPINE_STYLES: { bg: string; fg: string }[] = [
 ];
 
 const SPINE_HEIGHT_PX = 148;
+/** 책등 조회 로직 버전. 올리면 저장된 책등 결과를 버리고 다시 조회한다. */
+const SPINE_V = 2;
 
 /** 제목 길이에 따른 책등 두께 (색상 책등 폴백용) */
 function spineWidth(title: string): number {
@@ -154,7 +156,10 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
   // ISBN 은 있는데 책등을 아직 조회하지 않은 책들을 순차적으로 백필 (동시 2건)
   useEffect(() => {
     const pending = allBooks.filter(
-      (b) => (b.isbn || b.title) && !b.spineChecked && !inFlightRef.current.has(b.id)
+      (b) =>
+        (b.isbn || b.title) &&
+        (b.spineV !== SPINE_V || !b.spineChecked) &&
+        !inFlightRef.current.has(b.id)
     );
     if (pending.length === 0) return;
 
@@ -171,6 +176,7 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
         updateBook(book.id, {
           spineUrl: url ?? undefined,
           spineChecked: true,
+          spineV: SPINE_V,
         });
       }
     }
@@ -182,7 +188,7 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allBooks.map((b) => `${b.id}:${b.spineChecked ? 1 : 0}`).join(",")]);
+  }, [allBooks.map((b) => `${b.id}:${b.spineV ?? 0}:${b.spineChecked ? 1 : 0}`).join(",")]);
 
   return (
     <section className="mt-6">

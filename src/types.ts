@@ -16,6 +16,8 @@ export interface Book {
   spineUrl?: string;
   /** 책등 조회를 이미 시도했는지 (없는 책 반복 조회 방지) */
   spineChecked?: boolean;
+  /** 책등 조회 로직 버전 — 올라가면 기존 결과를 무효화하고 재조회 */
+  spineV?: number;
   pageCount?: number;
   currentPage?: number;
   isbn?: string;

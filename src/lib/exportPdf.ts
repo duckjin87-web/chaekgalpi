@@ -1,27 +1,33 @@
-import type { Book, Quote, Review } from "../types";
+import type { Book, Review } from "../types";
 
 /**
- * 책 한 권의 기록(정보 · 생각거리 답변 · 독후감 · 구절 · 마인드맵)을 PDF 로 만든다.
+ * 책 한 권의 기록을 가로(landscape) A4 보고서 PDF 로 만든다.
  *
- * 한글 폰트를 PDF 에 임베드하면 용량이 커지고 글꼴 문제가 잦아서,
- * 내용을 화면과 같은 DOM 으로 그린 뒤 이미지로 래스터화해 페이지에 넣는다.
- * (브라우저가 렌더하므로 한글·이모지가 그대로 나온다)
+ * 담는 것: 책 정보 · 생각거리 3문답 · 독후감 · 마인드맵
+ * 내용이 비어 있는 항목은 제목만 남기고 본문은 넣지 않는다.
  *
- * jspdf / html-to-image 는 필요할 때만 동적으로 불러와 초기 번들을 키우지 않는다.
+ * 한글 폰트 임베드 대신 DOM 을 이미지로 래스터화한다
+ * (브라우저 렌더이므로 한글·이모지가 그대로 나온다).
+ * 속도를 위해 첨부 사진은 넣지 않고 pixelRatio 를 낮춘다.
  */
 
 export interface ExportInput {
   book: Book;
   review?: Review;
-  quotes: Quote[];
   prompts: string[];
   answers: string[];
-  /** 마인드맵 캡처 이미지(dataURL). 없으면 해당 페이지를 넣지 않는다 */
+  /** 마인드맵 캡처 이미지(dataURL). 없으면 제목만 있는 페이지로 대체 */
   mindMapDataUrl?: string;
 }
 
-const A4 = { w: 210, h: 297 }; // mm
-const MARGIN = 10;
+/** 가로 A4 (mm) */
+const PAGE = { w: 297, h: 210 };
+const MARGIN = 12;
+const CONTENT_W = PAGE.w - MARGIN * 2; // 273
+const CONTENT_H = PAGE.h - MARGIN * 2; // 186
+
+/** 리포트 DOM 폭(px). 가로 A4 비율에 맞춰 배치된다 */
+const NODE_W = 1090;
 
 function esc(s: string): string {
   return s
@@ -31,167 +37,144 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-const QUOTE_COLOR: Record<string, string> = {
-  yellow: "#f5c518",
-  blue: "#3b9ae1",
-  pink: "#e86f9e",
-  green: "#3fb27f",
-  cream: "#c9c2b4",
-};
+const EMPTY = `<p style="margin:0;font-size:12px;color:#b0aaa0;font-style:italic">작성된 내용이 없습니다</p>`;
 
-/** 인쇄용 리포트 DOM 을 만들어 화면 밖에 붙인다 */
+function sectionTitle(text: string): string {
+  return `<h2 style="margin:0 0 8px;font-size:15px;font-weight:800;color:#22335a;
+    padding-bottom:5px;border-bottom:2px solid #22335a;letter-spacing:-0.01em">${esc(text)}</h2>`;
+}
+
+/** 인쇄용 리포트 DOM (화면 밖에 임시로 붙임) */
 function buildReportNode(input: ExportInput): HTMLElement {
-  const { book, review, quotes, prompts, answers } = input;
+  const { book, review, prompts, answers } = input;
+
   const el = document.createElement("div");
-  // 화면에 보이지 않지만 렌더는 되도록 (display:none 이면 캡처 불가)
   el.style.cssText = [
     "position:fixed",
     "left:-10000px",
     "top:0",
-    "width:820px",
-    "padding:40px",
+    `width:${NODE_W}px`,
+    "padding:34px 40px",
     "background:#ffffff",
     "color:#2a2620",
     "font-family:'Gowun Dodum',system-ui,-apple-system,'Apple SD Gothic Neo',sans-serif",
-    "line-height:1.7",
+    "line-height:1.6",
     "box-sizing:border-box",
   ].join(";");
 
-  const meta = [book.author, book.publisher, book.publishedDate?.slice(0, 10)]
-    .filter(Boolean)
-    .join(" · ");
+  const metaParts = [book.author, book.publisher, book.publishedDate?.slice(0, 10)].filter(Boolean);
+  const progress =
+    book.bookType === "전자책"
+      ? `${book.currentPage ?? 0}%`
+      : book.pageCount
+        ? `${book.currentPage ?? 0} / ${book.pageCount}p`
+        : "—";
 
-  const qaHtml =
-    prompts.length > 0
-      ? `<section style="margin-top:28px">
-           <h2 style="font-size:17px;font-weight:700;margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid #22335a">서평으로 보는 생각거리</h2>
-           ${prompts
-             .map(
-               (q, i) => `
-             <div style="margin-bottom:14px;padding:12px 14px;background:#f7f6f2;border-radius:6px">
-               <p style="margin:0 0 6px;font-weight:700;font-size:14px">Q${i + 1}. ${esc(q)}</p>
-               <p style="margin:0;white-space:pre-wrap;font-size:13px;color:#44403c">${
-                 answers[i]?.trim() ? esc(answers[i]) : "<span style='color:#a8a29e'>(답변 없음)</span>"
-               }</p>
-             </div>`
-             )
-             .join("")}
-         </section>`
-      : "";
+  // ── 책 정보 (가로 스펙 테이블)
+  const infoRows: [string, string][] = [
+    ["저자", book.author || "—"],
+    ["출판사", book.publisher || "—"],
+    ["출판일", book.publishedDate?.slice(0, 10) || "—"],
+    ["책 유형", book.bookType || "종이책"],
+    ["상태", book.status],
+    ["진행", progress],
+  ];
 
-  const reviewHtml = review?.content?.trim()
-    ? `<section style="margin-top:28px">
-         <h2 style="font-size:17px;font-weight:700;margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid #22335a">독후감</h2>
-         ${
-           review.rating
-             ? `<p style="margin:0 0 8px;font-size:14px;color:#b45309">${"★".repeat(review.rating)}${"☆".repeat(5 - review.rating)}</p>`
-             : ""
-         }
-         <div style="white-space:pre-wrap;font-size:13.5px">${esc(review.content)}</div>
-         ${
-           review.photoUrl
-             ? `<img src="${review.photoUrl}" style="margin-top:12px;max-width:100%;border-radius:6px" />`
-             : ""
-         }
-       </section>`
+  const header = `
+    <header style="display:flex;gap:22px;align-items:flex-start;padding-bottom:14px;
+      border-bottom:3px solid #22335a;margin-bottom:18px">
+      <div style="flex:1;min-width:0">
+        <p style="margin:0;font-size:9px;letter-spacing:.38em;color:#a8a29e">책갈피 · READING JOURNAL</p>
+        <h1 style="margin:5px 0 6px;font-size:24px;font-weight:800;line-height:1.25;color:#22335a">${esc(book.title)}</h1>
+        <p style="margin:0;font-size:12px;color:#57534e">${esc(metaParts.join("  ·  "))}</p>
+      </div>
+      <table style="border-collapse:collapse;font-size:11px;flex-shrink:0">
+        ${infoRows
+          .map(
+            ([k, v]) => `<tr>
+              <td style="padding:2px 10px 2px 0;color:#a8a29e;white-space:nowrap">${esc(k)}</td>
+              <td style="padding:2px 0;color:#44403c;white-space:nowrap;font-weight:600">${esc(v)}</td>
+            </tr>`
+          )
+          .join("")}
+      </table>
+    </header>`;
+
+  // ── 생각거리: 가로 3열
+  const answered = prompts.map((q, i) => ({ q, a: (answers[i] ?? "").trim() }));
+  const qaHtml = `
+    <section style="margin-bottom:20px">
+      ${sectionTitle("서평으로 보는 생각거리")}
+      ${
+        prompts.length === 0
+          ? EMPTY
+          : `<div style="display:flex;gap:12px;align-items:stretch">
+              ${answered
+                .map(
+                  ({ q, a }, i) => `
+                <div style="flex:1;min-width:0;padding:11px 13px;background:#f8f7f4;
+                  border:1px solid #eceae4;border-radius:5px;box-sizing:border-box">
+                  <p style="margin:0 0 6px;font-size:11.5px;font-weight:700;color:#22335a;line-height:1.45">
+                    Q${i + 1}. ${esc(q)}
+                  </p>
+                  <p style="margin:0;font-size:11.5px;white-space:pre-wrap;color:#44403c;line-height:1.6">${
+                    a ? esc(a) : `<span style="color:#b0aaa0;font-style:italic">작성된 내용이 없습니다</span>`
+                  }</p>
+                </div>`
+                )
+                .join("")}
+            </div>`
+      }
+    </section>`;
+
+  // ── 독후감
+  const reviewText = review?.content?.trim() ?? "";
+  const stars = review?.rating
+    ? `<span style="font-size:12px;color:#b45309;margin-left:8px">${"★".repeat(review.rating)}${"☆".repeat(5 - review.rating)}</span>`
     : "";
-
-  const quotesHtml =
-    quotes.length > 0
-      ? `<section style="margin-top:28px">
-           <h2 style="font-size:17px;font-weight:700;margin:0 0 10px;padding-bottom:6px;border-bottom:2px solid #22335a">구절 · 하이라이트 (${quotes.length})</h2>
-           ${quotes
-             .map(
-               (q) => `
-             <div style="margin-bottom:12px;padding:10px 14px;border-left:4px solid ${
-               QUOTE_COLOR[q.color] ?? "#c9c2b4"
-             };background:#fafaf8;border-radius:0 6px 6px 0">
-               <p style="margin:0;white-space:pre-wrap;font-size:13px">${esc(q.text)}</p>
-               <p style="margin:6px 0 0;font-size:11px;color:#78716c">${
-                 q.page ? esc(q.page) + " · " : ""
-               }${new Date(q.createdAt).toLocaleDateString("ko-KR")}</p>
-               ${
-                 q.photoUrl
-                   ? `<img src="${q.photoUrl}" style="margin-top:8px;max-height:220px;border-radius:4px" />`
-                   : ""
-               }
-             </div>`
-             )
-             .join("")}
-         </section>`
-      : "";
+  const reviewHtml = `
+    <section>
+      <h2 style="margin:0 0 8px;font-size:15px;font-weight:800;color:#22335a;
+        padding-bottom:5px;border-bottom:2px solid #22335a;letter-spacing:-0.01em">
+        독후감${stars}
+      </h2>
+      ${
+        reviewText
+          ? `<div style="white-space:pre-wrap;font-size:12.5px;line-height:1.75;color:#3d382f">${esc(reviewText)}</div>`
+          : EMPTY
+      }
+    </section>`;
 
   el.innerHTML = `
-    <header style="display:flex;gap:20px;align-items:flex-start;padding-bottom:16px;border-bottom:3px solid #22335a">
-      ${
-        book.coverUrl
-          ? `<img src="${book.coverUrl}" style="width:110px;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.18)" />`
-          : ""
-      }
-      <div style="flex:1;min-width:0">
-        <p style="margin:0;font-size:10px;letter-spacing:.35em;color:#a8a29e">책갈피 · READING JOURNAL</p>
-        <h1 style="margin:4px 0 6px;font-size:26px;font-weight:800;line-height:1.25;color:#22335a">${esc(book.title)}</h1>
-        <p style="margin:0;font-size:13px;color:#57534e">${esc(meta)}</p>
-        <p style="margin:8px 0 0;font-size:12px;color:#78716c">
-          상태: ${esc(book.status)}${
-            book.pageCount ? ` · ${book.currentPage ?? 0}/${book.pageCount}p` : ""
-          }
-        </p>
-      </div>
-    </header>
+    ${header}
     ${qaHtml}
     ${reviewHtml}
-    ${quotesHtml}
-    <footer style="margin-top:32px;padding-top:10px;border-top:1px solid #e7e5e4;font-size:10px;color:#a8a29e;text-align:right">
-      ${new Date().toLocaleDateString("ko-KR")} · 책갈피에서 내보냄
-    </footer>
-  `;
+    <footer style="margin-top:22px;padding-top:8px;border-top:1px solid #e7e5e4;
+      font-size:9.5px;color:#a8a29e;display:flex;justify-content:space-between">
+      <span>책갈피 · 독서 기록</span>
+      <span>${new Date().toLocaleDateString("ko-KR")}</span>
+    </footer>`;
+
   document.body.appendChild(el);
   return el;
 }
 
-/** 이미지 로딩이 끝날 때까지 대기 (표지·첨부 사진이 빠지지 않도록) */
-async function waitForImages(root: HTMLElement): Promise<void> {
-  const imgs = Array.from(root.querySelectorAll("img"));
-  await Promise.all(
-    imgs.map(
-      (img) =>
-        new Promise<void>((resolve) => {
-          if (img.complete) return resolve();
-          img.onload = () => resolve();
-          img.onerror = () => resolve();
-          // 외부 이미지가 막히면 무한 대기하지 않도록
-          setTimeout(resolve, 4000);
-        })
-    )
-  );
-}
-
-/** 긴 이미지를 A4 여러 장으로 나눠 넣는다 */
-function addImagePaged(
-  pdf: any,
-  dataUrl: string,
-  imgW: number,
-  imgH: number,
-  isFirstPage: boolean
-) {
-  const pageW = A4.w - MARGIN * 2;
-  const pageH = A4.h - MARGIN * 2;
-  const scale = pageW / imgW; // mm per px
-  const fullH = imgH * scale; // 전체 높이(mm)
+/** 긴 리포트를 가로 A4 여러 장으로 나눠 배치 */
+function addImagePaged(pdf: any, dataUrl: string, imgW: number, imgH: number) {
+  const scale = CONTENT_W / imgW; // mm per px
+  const fullH = imgH * scale;
 
   let offset = 0;
-  let first = isFirstPage;
+  let first = true;
   while (offset < fullH - 0.5) {
-    if (!first) pdf.addPage();
+    if (!first) pdf.addPage(undefined, "landscape");
     first = false;
-    // 이미지를 위로 밀어 해당 구간만 보이게
-    pdf.addImage(dataUrl, "PNG", MARGIN, MARGIN - offset, pageW, fullH, undefined, "FAST");
-    // 페이지 경계 아래로 넘어간 부분을 흰색으로 덮어 잘림선을 깔끔하게
+    pdf.addImage(dataUrl, "PNG", MARGIN, MARGIN - offset, CONTENT_W, fullH, undefined, "FAST");
+    // 페이지 경계 밖으로 삐져나온 부분 가리기
     pdf.setFillColor(255, 255, 255);
-    pdf.rect(0, A4.h - MARGIN, A4.w, MARGIN, "F");
-    pdf.rect(0, 0, A4.w, MARGIN, "F");
-    offset += pageH;
+    pdf.rect(0, 0, PAGE.w, MARGIN, "F");
+    pdf.rect(0, PAGE.h - MARGIN, PAGE.w, MARGIN, "F");
+    offset += CONTENT_H;
   }
 }
 
@@ -203,46 +186,56 @@ export async function buildBookPdf(input: ExportInput): Promise<Blob> {
 
   const node = buildReportNode(input);
   try {
-    await waitForImages(node);
-    // 폰트 적용 대기
     await (document as any).fonts?.ready;
 
     const dataUrl = await htmlToImage.toPng(node, {
-      pixelRatio: 2,
+      pixelRatio: 1.6,
       backgroundColor: "#ffffff",
-      cacheBust: true,
+      // 외부 이미지가 없으므로 캐시버스트/폰트 임베드 비용을 줄인다
+      skipFonts: false,
     });
-    const w = node.scrollWidth;
-    const h = node.scrollHeight;
 
-    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-    addImagePaged(pdf, dataUrl, w, h, true);
+    const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
+    addImagePaged(pdf, dataUrl, node.scrollWidth, node.scrollHeight);
 
-    // 마인드맵은 가로 방향 한 페이지로
+    // ── 마인드맵 페이지 (없으면 제목만)
+    pdf.addPage(undefined, "landscape");
     if (input.mindMapDataUrl) {
-      pdf.addPage("a4", "landscape");
-      const pw = A4.h - MARGIN * 2; // 가로 방향이므로 폭/높이 교환
-      const ph = A4.w - MARGIN * 2;
       const img = new Image();
       img.src = input.mindMapDataUrl;
       await new Promise((r) => {
         img.onload = r;
         img.onerror = r;
       });
-      const ratio = Math.min(pw / (img.width || 1), ph / (img.height || 1));
+      const headH = 12;
+      const availW = CONTENT_W;
+      const availH = CONTENT_H - headH;
+      const ratio = Math.min(availW / (img.width || 1), availH / (img.height || 1));
       const dw = (img.width || 1) * ratio;
       const dh = (img.height || 1) * ratio;
-      pdf.setFontSize(9);
+      pdf.setTextColor(34, 51, 90);
+      pdf.setFontSize(13);
+      pdf.text("Mind Map", MARGIN, MARGIN + 6);
+      pdf.setDrawColor(34, 51, 90);
+      pdf.setLineWidth(0.6);
+      pdf.line(MARGIN, MARGIN + 8.5, PAGE.w - MARGIN, MARGIN + 8.5);
       pdf.addImage(
         input.mindMapDataUrl,
         "PNG",
-        MARGIN + (pw - dw) / 2,
-        MARGIN + (ph - dh) / 2,
+        MARGIN + (availW - dw) / 2,
+        MARGIN + headH + (availH - dh) / 2,
         dw,
         dh,
         undefined,
         "FAST"
       );
+    } else {
+      pdf.setTextColor(34, 51, 90);
+      pdf.setFontSize(13);
+      pdf.text("Mind Map", MARGIN, MARGIN + 6);
+      pdf.setDrawColor(34, 51, 90);
+      pdf.setLineWidth(0.6);
+      pdf.line(MARGIN, MARGIN + 8.5, PAGE.w - MARGIN, MARGIN + 8.5);
     }
 
     return pdf.output("blob") as Blob;
@@ -255,12 +248,13 @@ export async function buildBookPdf(input: ExportInput): Promise<Blob> {
 export async function captureMindMap(): Promise<string | undefined> {
   const viewport = document.querySelector(".react-flow__viewport") as HTMLElement | null;
   if (!viewport) return undefined;
+  // 노드가 하나도 없으면 의미 없는 빈 이미지이므로 건너뛴다
+  if (!viewport.querySelector(".react-flow__node")) return undefined;
   try {
     const htmlToImage = await import("html-to-image");
     return await htmlToImage.toPng(viewport, {
-      pixelRatio: 2,
+      pixelRatio: 1.6,
       backgroundColor: "#ffffff",
-      cacheBust: true,
     });
   } catch {
     return undefined;
@@ -290,7 +284,6 @@ export async function sharePdf(blob: Blob, filename: string, title: string): Pro
       await nav.share({ files: [file], title, text: `${title} · 책갈피 독서 기록` });
       return true;
     } catch (e: any) {
-      // 사용자가 취소한 경우는 조용히 무시
       if (e?.name === "AbortError") return true;
     }
   }

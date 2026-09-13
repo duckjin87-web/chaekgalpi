@@ -119,15 +119,16 @@ export default function BookDetailPage() {
 
       // 마인드맵은 화면에 떠 있어야 캡처되므로 잠시 마인드맵 탭으로 전환
       let mindMapDataUrl: string | undefined;
-      if (originalTab !== "mindmap") setTab("mindmap");
-      await new Promise((r) => setTimeout(r, originalTab !== "mindmap" ? 700 : 250));
+      if (originalTab !== "mindmap") {
+        setTab("mindmap");
+        await new Promise((r) => setTimeout(r, 450));
+      }
       mindMapDataUrl = await captureMindMap();
       if (originalTab !== "mindmap") setTab(originalTab);
 
       const blob = await buildBookPdf({
         book,
         review,
-        quotes: review?.quotes ?? [],
         prompts: book.readingPrompts?.questions ?? [],
         answers: book.promptAnswers ?? [],
         mindMapDataUrl,

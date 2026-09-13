@@ -30,19 +30,19 @@ const SPINE_STYLES: { bg: string; fg: string }[] = [
   { bg: "#4a3a5a", fg: "#e5dcbf" },
 ];
 
-const SPINE_HEIGHT_PX = 280;
+const SPINE_HEIGHT_PX = 200;
 /** 책등 조회 로직 버전. 올리면 저장된 책등 결과를 버리고 다시 조회한다. */
 const SPINE_V = 5;
 
 /** 제목 길이에 따른 책등 두께 (색상 책등 폴백용) */
 function spineWidth(title: string): number {
   const len = Math.min(title.length, 18);
-  return 46 + Math.round(len * 2.1);
+  return 36 + Math.round(len * 1.6);
 }
 function spineFontSize(title: string): number {
-  const usable = SPINE_HEIGHT_PX - 34;
+  const usable = SPINE_HEIGHT_PX - 28;
   const perChar = usable / title.length;
-  return Math.max(11, Math.min(22, Math.round(perChar / 1.05)));
+  return Math.max(9, Math.min(17, Math.round(perChar / 1.05)));
 }
 
 /** 실제 YES24 책등 이미지. 없으면 색상 책등으로 폴백 */
@@ -192,11 +192,11 @@ interface TierProps {
 function Tier({ label, children }: TierProps) {
   return (
     <div className="wood-panel relative">
-      <div className="flex h-[320px] items-end gap-[3px] overflow-x-auto overflow-y-hidden px-3 pb-[12px] pt-2">
+      <div className="flex h-[235px] items-end gap-[3px] overflow-x-auto overflow-y-hidden px-3 pb-[11px] pt-2">
         {children}
       </div>
       <span className="wood-label pointer-events-none absolute left-2 top-1">{label}</span>
-      <div className="wood-plank absolute inset-x-1 bottom-0 h-[12px]" />
+      <div className="wood-plank absolute inset-x-1 bottom-0 h-[10px]" />
     </div>
   );
 }
@@ -291,7 +291,7 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
             {recentBooks.length > 0 ? (
               recentBooks.map((b) => <BookSpineFromBook key={b.id} book={b} />)
             ) : (
-              <p className="w-full py-16 text-center text-[13px] italic text-stone-100/60">
+              <p className="w-full py-10 text-center text-[12px] italic text-stone-100/60">
                 최근 6개월 안에 완독한 책이 없어요
               </p>
             )}
@@ -312,7 +312,7 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
             {oldBooks.length > 0 ? (
               oldBooks.map((b) => <BookSpineFromBook key={b.id} book={b} />)
             ) : (
-              <p className="w-full py-16 text-center text-[13px] italic text-stone-100/60">
+              <p className="w-full py-10 text-center text-[12px] italic text-stone-100/60">
                 6개월 이상 지난 완독 책이 없어요
               </p>
             )}

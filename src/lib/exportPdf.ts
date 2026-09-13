@@ -57,7 +57,7 @@ function buildReportNode(input: ExportInput): HTMLElement {
     "padding:34px 40px",
     "background:#ffffff",
     "color:#2a2620",
-    "font-family:'Gowun Dodum',system-ui,-apple-system,'Apple SD Gothic Neo',sans-serif",
+    "font-family:-apple-system,'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',system-ui,sans-serif",
     "line-height:1.6",
     "box-sizing:border-box",
   ].join(";");
@@ -169,7 +169,7 @@ function addImagePaged(pdf: any, dataUrl: string, imgW: number, imgH: number) {
   while (offset < fullH - 0.5) {
     if (!first) pdf.addPage(undefined, "landscape");
     first = false;
-    pdf.addImage(dataUrl, "PNG", MARGIN, MARGIN - offset, CONTENT_W, fullH, undefined, "FAST");
+    pdf.addImage(dataUrl, "JPEG", MARGIN, MARGIN - offset, CONTENT_W, fullH, undefined, "FAST");
     // 페이지 경계 밖으로 삐져나온 부분 가리기
     pdf.setFillColor(255, 255, 255);
     pdf.rect(0, 0, PAGE.w, MARGIN, "F");
@@ -188,11 +188,14 @@ export async function buildBookPdf(input: ExportInput): Promise<Blob> {
   try {
     await (document as any).fonts?.ready;
 
-    const dataUrl = await htmlToImage.toPng(node, {
-      pixelRatio: 1.6,
+    // skipFonts: 한글 웹폰트(수 MB)를 base64 로 인라인하지 않도록 끈다.
+    // 리포트는 기기 내장 폰트로 그리므로 한글은 그대로 나온다. (속도의 핵심)
+    // PNG 대신 JPEG 로 인코딩해 캔버스 직렬화 비용도 줄인다.
+    const dataUrl = await htmlToImage.toJpeg(node, {
+      pixelRatio: 1.5,
+      quality: 0.94,
       backgroundColor: "#ffffff",
-      // 외부 이미지가 없으므로 캐시버스트/폰트 임베드 비용을 줄인다
-      skipFonts: false,
+      skipFonts: true,
     });
 
     const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "landscape" });
@@ -221,7 +224,7 @@ export async function buildBookPdf(input: ExportInput): Promise<Blob> {
       pdf.line(MARGIN, MARGIN + 8.5, PAGE.w - MARGIN, MARGIN + 8.5);
       pdf.addImage(
         input.mindMapDataUrl,
-        "PNG",
+        "JPEG",
         MARGIN + (availW - dw) / 2,
         MARGIN + headH + (availH - dh) / 2,
         dw,
@@ -252,9 +255,11 @@ export async function captureMindMap(): Promise<string | undefined> {
   if (!viewport.querySelector(".react-flow__node")) return undefined;
   try {
     const htmlToImage = await import("html-to-image");
-    return await htmlToImage.toPng(viewport, {
-      pixelRatio: 1.6,
+    return await htmlToImage.toJpeg(viewport, {
+      pixelRatio: 1.5,
+      quality: 0.94,
       backgroundColor: "#ffffff",
+      skipFonts: true,
     });
   } catch {
     return undefined;

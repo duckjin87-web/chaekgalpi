@@ -274,7 +274,7 @@ export default function BookDetailPage() {
                   >
                     {book.status}
                   </button>
-                  <div className="mt-2 flex gap-3 text-xs">
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
                     <button
                       onClick={() => setShowEditModal(true)}
                       className="text-stone-500 hover:underline"
@@ -283,6 +283,21 @@ export default function BookDetailPage() {
                     </button>
                     <button onClick={handleDelete} className="text-red-500 hover:underline">
                       삭제
+                    </button>
+                    <span className="h-3 w-px bg-stone-300" />
+                    <button
+                      onClick={() => void handleExport("download")}
+                      disabled={!!exporting}
+                      className="text-ink hover:underline disabled:opacity-40"
+                    >
+                      PDF 저장
+                    </button>
+                    <button
+                      onClick={() => void handleExport("share")}
+                      disabled={!!exporting}
+                      className="text-ink hover:underline disabled:opacity-40"
+                    >
+                      공유하기
                     </button>
                   </div>
                 </div>

@@ -5,6 +5,7 @@ import MindMapEditor from "../components/mindmap/MindMapEditor";
 import ReviewEditor from "../components/review/ReviewEditor";
 import EditBookModal from "../components/library/EditBookModal";
 import CompletionCelebration from "../components/common/CompletionCelebration";
+import TouchScrollbar from "../components/common/TouchScrollbar";
 import type { BookStatus } from "../types";
 
 type Tab = "mindmap" | "review";
@@ -39,6 +40,7 @@ export default function BookDetailPage() {
   const [showMenu, setShowMenu] = useState(false);
   const [exporting, setExporting] = useState<string | null>(null);
   const celebrationFiredRef = useRef(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const review = useLibraryStore((s) => s.getReview(bookId ?? ""));
 
   // 100% 도달 시 자동으로 완독 처리 + 축하 (한 번만)
@@ -169,7 +171,7 @@ export default function BookDetailPage() {
   const progress = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
 
   return (
-    <div className="paper-texture thick-scroll h-screen overflow-y-auto">
+    <div ref={scrollRef} className="paper-texture h-screen overflow-y-auto">
       <div className="paper-texture sticky top-0 z-30 flex items-center justify-between px-5 pb-1 pt-3">
         <Link to="/" className="text-sm text-stone-500 hover:underline">
           ← 서재로
@@ -456,6 +458,8 @@ export default function BookDetailPage() {
           <ReviewEditor bookId={bookId} />
         )}
       </div>
+
+      <TouchScrollbar targetRef={scrollRef} />
 
       {exporting && (
         <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/40">

@@ -55,6 +55,22 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
     if (draft !== data.text) updateNodeData(id, { text: draft });
   }
 
+  /** 커서 위치에 줄바꿈 삽입 (모바일 키보드에 줄바꿈 키가 없을 때용) */
+  function insertNewline() {
+    const ta = textRef.current;
+    if (!ta) {
+      setDraft((d) => d + "\n");
+      return;
+    }
+    const start = ta.selectionStart ?? draft.length;
+    const end = ta.selectionEnd ?? draft.length;
+    setDraft(draft.slice(0, start) + "\n" + draft.slice(end));
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = start + 1;
+    });
+  }
+
   function startPress() {
     pressTimer.current = window.setTimeout(() => setEditing(true), 500);
   }
@@ -192,15 +208,41 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
         onPointerLeave={cancelPress}
       >
         {editing ? (
-          <textarea
-            ref={textRef}
-            className="nodrag h-full w-full resize-none bg-transparent outline-none"
-            style={{ fontSize }}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitDraft}
-            placeholder="메모를 입력하세요"
-          />
+          <div className="nodrag flex h-full w-full flex-col">
+            <textarea
+              ref={textRef}
+              className="nodrag min-h-0 w-full flex-1 resize-none bg-transparent outline-none"
+              style={{ fontSize }}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onBlur={(e) => {
+                const next = e.relatedTarget as HTMLElement | null;
+                if (next && e.currentTarget.parentElement?.contains(next)) return;
+                commitDraft();
+              }}
+              placeholder="메모를 입력하세요"
+            />
+            <div className="mt-1 flex shrink-0 items-center justify-end gap-1">
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={insertNewline}
+                className="rounded border border-stone-400/50 bg-white/80 px-1.5 py-0.5 text-[11px] leading-none text-stone-600"
+                title="줄바꿈"
+              >
+                ↵ 줄바꿈
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={commitDraft}
+                className="rounded bg-amber-600 px-1.5 py-0.5 text-[11px] leading-none text-white"
+                title="입력 완료"
+              >
+                완료
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="flex h-full w-full flex-col gap-1">
             {data.photoUrl && (

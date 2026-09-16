@@ -18,7 +18,7 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(data.text);
   const pressTimer = useRef<number | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -43,6 +43,25 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
   function commitDraft() {
     setEditing(false);
     if (draft !== data.text) updateNodeData(id, { text: draft });
+  }
+
+  /** 커서 위치에 줄바꿈 삽입 (모바일 키보드에 줄바꿈 키가 없을 때용) */
+  function insertNewline() {
+    const ta = inputRef.current;
+    if (!ta) {
+      setDraft((d) => d + "\n");
+      return;
+    }
+    const start = ta.selectionStart ?? draft.length;
+    const end = ta.selectionEnd ?? draft.length;
+    const next = draft.slice(0, start) + "\n" + draft.slice(end);
+    setDraft(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = start + 1;
+      ta.style.height = "auto";
+      ta.style.height = `${ta.scrollHeight}px`;
+    });
   }
   function startPress() {
     pressTimer.current = window.setTimeout(() => setEditing(true), 500);
@@ -102,24 +121,59 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
       )}
 
       {editing ? (
-        <input
-          ref={inputRef}
-          className="nodrag w-full rounded bg-white/95 px-1 text-stone-900 outline-none"
-          style={{ fontSize: style.fontSize, fontWeight: style.fontWeight }}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commitDraft}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
+        <div className="nodrag">
+          <textarea
+            ref={inputRef}
+            rows={1}
+            className="nodrag w-full resize-none overflow-hidden rounded bg-white/95 px-1 leading-snug text-stone-900 outline-none"
+            style={{ fontSize: style.fontSize, fontWeight: style.fontWeight }}
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value);
+              // 내용에 맞춰 높이 자동 조절
+              e.target.style.height = "auto";
+              e.target.style.height = `${e.target.scrollHeight}px`;
+            }}
+            onBlur={(e) => {
+              // 줄바꿈/완료 버튼으로 포커스가 옮겨간 경우는 커밋하지 않는다
+              const next = e.relatedTarget as HTMLElement | null;
+              if (next && e.currentTarget.parentElement?.contains(next)) return;
               commitDraft();
-            }
-            if (e.key === "Escape") {
-              e.preventDefault();
-              setEditing(false);
-            }
-          }}
-        />
+            }}
+            onKeyDown={(e) => {
+              // Enter = 줄바꿈, Ctrl/⌘+Enter = 완료
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                commitDraft();
+              }
+              if (e.key === "Escape") {
+                e.preventDefault();
+                setEditing(false);
+              }
+            }}
+          />
+          {/* 줄바꿈 / 완료 */}
+          <div className="mt-1 flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={insertNewline}
+              className="rounded border border-stone-300 bg-white/95 px-1.5 py-0.5 text-[11px] leading-none text-stone-600 shadow-sm"
+              title="줄바꿈"
+            >
+              ↵ 줄바꿈
+            </button>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={commitDraft}
+              className="rounded bg-emerald-700 px-1.5 py-0.5 text-[11px] leading-none text-white shadow-sm"
+              title="입력 완료"
+            >
+              완료
+            </button>
+          </div>
+        </div>
       ) : (
         <p
           className="break-words leading-snug"

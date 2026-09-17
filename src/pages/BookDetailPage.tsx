@@ -6,6 +6,7 @@ import ReviewEditor from "../components/review/ReviewEditor";
 import EditBookModal from "../components/library/EditBookModal";
 import CompletionCelebration from "../components/common/CompletionCelebration";
 import TouchScrollbar from "../components/common/TouchScrollbar";
+import { useViewport } from "../lib/useViewport";
 import type { BookStatus } from "../types";
 
 type Tab = "mindmap" | "review";
@@ -41,7 +42,17 @@ export default function BookDetailPage() {
   const [exporting, setExporting] = useState<string | null>(null);
   const celebrationFiredRef = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { shortLandscape } = useViewport();
   const review = useLibraryStore((s) => s.getReview(bookId ?? ""));
+
+  // 가로모드로 바뀌면 정보 카드를 접어 마인드맵/독후감 공간을 확보한다
+  const prevLandscape = useRef(shortLandscape);
+  useEffect(() => {
+    if (shortLandscape !== prevLandscape.current) {
+      prevLandscape.current = shortLandscape;
+      if (shortLandscape) setShowInfo(false);
+    }
+  }, [shortLandscape]);
 
   // 100% 도달 시 자동으로 완독 처리 + 축하 (한 번만)
   useEffect(() => {
@@ -451,7 +462,10 @@ export default function BookDetailPage() {
       {/* 콘텐츠: 마인드맵은 화면을 꽉 채우고, 위쪽 sticky 헤더/탭으로 정보로 복귀 가능 */}
       <div className="px-5 pb-6 pt-3">
         {tab === "mindmap" ? (
-          <div className="h-[calc(100vh-90px)] w-full">
+          <div
+            className="w-full"
+            style={{ height: shortLandscape ? "calc(100vh - 78px)" : "calc(100vh - 90px)" }}
+          >
             <MindMapEditor bookId={bookId} />
           </div>
         ) : (

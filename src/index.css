@@ -278,6 +278,18 @@ body {
     transform: rotate(38deg);
   }
 
+  /* ─── 가로모드(세로 공간이 좁은 화면) 보정 ─── */
+  /* 모달·팝업이 화면을 넘치지 않도록 최대 높이를 줄이고 스크롤 가능하게 */
+  @media (orientation: landscape) and (max-height: 520px) {
+    .paper-card.max-h-\[90vh\] {
+      max-height: 88vh;
+    }
+    /* 마인드맵 하단 쓰레기통이 화면을 가리지 않도록 위로 */
+    .mm-trash {
+      bottom: 8px !important;
+    }
+  }
+
   /* ─── 손글씨(화이트보드) 마인드맵 테마 ─── */
 
   /* 화이트보드 바탕: 아주 옅은 회색 + 미세 얼룩 */

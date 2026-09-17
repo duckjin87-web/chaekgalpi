@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Book } from "../../types";
 import { getDailyRecommendations, type BookRec } from "../../lib/recommendations";
+import { useViewport } from "../../lib/useViewport";
 import { fetchSpineUrl } from "../../lib/bookSpine";
 import { useLibraryStore } from "../../store/useLibraryStore";
 
@@ -30,7 +31,9 @@ const SPINE_STYLES: { bg: string; fg: string }[] = [
   { bg: "#4a3a5a", fg: "#e5dcbf" },
 ];
 
-const SPINE_HEIGHT_PX = 200;
+const SPINE_HEIGHT_DEFAULT = 200;
+/** 가로모드(세로 공간 부족)에서는 책등을 낮춘다 */
+const SPINE_HEIGHT_SHORT = 140;
 /** 책등 조회 로직 버전. 올리면 저장된 책등 결과를 버리고 다시 조회한다. */
 const SPINE_V = 5;
 
@@ -39,14 +42,14 @@ function spineWidth(title: string): number {
   const len = Math.min(title.length, 18);
   return 36 + Math.round(len * 1.6);
 }
-function spineFontSize(title: string): number {
-  const usable = SPINE_HEIGHT_PX - 28;
+function spineFontSize(title: string, h: number): number {
+  const usable = h - 28;
   const perChar = usable / title.length;
-  return Math.max(9, Math.min(17, Math.round(perChar / 1.05)));
+  return Math.max(8, Math.min(17, Math.round(perChar / 1.05)));
 }
 
 /** 실제 YES24 책등 이미지. 없으면 색상 책등으로 폴백 */
-function BookSpineFromBook({ book }: { book: Book }) {
+function BookSpineFromBook({ book, h: spineH }: { book: Book; h: number }) {
   const h = stableHash(book.id);
   const style = SPINE_STYLES[h % SPINE_STYLES.length];
   const rotate = ((h % 5) - 2) * 0.35;
@@ -70,7 +73,7 @@ function BookSpineFromBook({ book }: { book: Book }) {
           src={book.spineUrl}
           alt={book.title}
           className="block w-auto"
-          style={{ height: SPINE_HEIGHT_PX }}
+          style={{ height: spineH }}
           onError={() => setImgFailed(true)}
           loading="lazy"
           referrerPolicy="no-referrer"
@@ -94,13 +97,13 @@ function BookSpineFromBook({ book }: { book: Book }) {
       style={{
         ...shared,
         width: spineWidth(book.title),
-        height: SPINE_HEIGHT_PX,
+        height: spineH,
         backgroundColor: style.bg,
         color: style.fg,
       }}
       title={`${book.title}${book.author ? ` — ${book.author}` : ""}`}
     >
-      <span className="book-spine-title" style={{ fontSize: spineFontSize(book.title) }}>
+      <span className="book-spine-title" style={{ fontSize: spineFontSize(book.title, spineH) }}>
         {book.title}
       </span>
     </Link>
@@ -111,10 +114,12 @@ function BookSpineFromRec({
   rec,
   idx,
   spineUrl,
+  h: spineH,
 }: {
   rec: BookRec;
   idx: number;
   spineUrl?: string;
+  h: number;
 }) {
   const h = stableHash(rec.title);
   const style = SPINE_STYLES[(h + idx) % SPINE_STYLES.length];
@@ -132,7 +137,7 @@ function BookSpineFromRec({
           src={spineUrl}
           alt={rec.title}
           className="block w-auto"
-          style={{ height: SPINE_HEIGHT_PX }}
+          style={{ height: spineH }}
           onError={() => setImgFailed(true)}
           loading="lazy"
           referrerPolicy="no-referrer"
@@ -153,7 +158,7 @@ function BookSpineFromRec({
       className="book-spine flex flex-shrink-0 flex-col items-center justify-start"
       style={{
         width: spineWidth(rec.title),
-        height: SPINE_HEIGHT_PX,
+        height: spineH,
         backgroundColor: style.bg,
         color: style.fg,
         transform: `rotate(${rotate}deg)`,
@@ -161,7 +166,7 @@ function BookSpineFromRec({
       }}
       title={`${rec.title} — ${rec.author} · ${rec.genre}`}
     >
-      <span className="book-spine-title" style={{ fontSize: spineFontSize(rec.title) }}>
+      <span className="book-spine-title" style={{ fontSize: spineFontSize(rec.title, spineH) }}>
         {rec.title}
       </span>
     </div>
@@ -188,11 +193,15 @@ function saveRecCache(c: Record<string, string | null>) {
 interface TierProps {
   label: string;
   children: React.ReactNode;
+  h: number;
 }
-function Tier({ label, children }: TierProps) {
+function Tier({ label, children, h }: TierProps) {
   return (
     <div className="wood-panel relative">
-      <div className="flex h-[235px] items-end gap-[3px] overflow-x-auto overflow-y-hidden px-3 pb-[11px] pt-2">
+      <div
+        className="flex items-end gap-[3px] overflow-x-auto overflow-y-hidden px-3 pb-[11px] pt-2"
+        style={{ height: h }}
+      >
         {children}
       </div>
       <span className="wood-label pointer-events-none absolute left-2 top-1">{label}</span>
@@ -203,6 +212,9 @@ function Tier({ label, children }: TierProps) {
 
 export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: ThreeTierShelfProps) {
   const recs = getDailyRecommendations(allBooks);
+  const { shortLandscape } = useViewport();
+  const spineH = shortLandscape ? SPINE_HEIGHT_SHORT : SPINE_HEIGHT_DEFAULT;
+  const tierH = spineH + 35;
   const updateBook = useLibraryStore((s) => s.updateBook);
   const inFlightRef = useRef<Set<string>>(new Set());
   const [recSpines, setRecSpines] = useState<Record<string, string | null>>(loadRecCache);
@@ -287,9 +299,9 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
 
       <div className="wood-frame overflow-hidden rounded-md p-2">
         <div className="flex flex-col gap-1">
-          <Tier label="1단 · 읽은 책 (~6개월)">
+          <Tier label="1단 · 읽은 책 (~6개월)" h={tierH}>
             {recentBooks.length > 0 ? (
-              recentBooks.map((b) => <BookSpineFromBook key={b.id} book={b} />)
+              recentBooks.map((b) => <BookSpineFromBook key={b.id} book={b} h={spineH} />)
             ) : (
               <p className="w-full py-10 text-center text-[12px] italic text-stone-100/60">
                 최근 6개월 안에 완독한 책이 없어요
@@ -297,20 +309,21 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
             )}
           </Tier>
 
-          <Tier label="2단 · 추천 책">
+          <Tier label="2단 · 추천 책" h={tierH}>
             {recs.map((r, i) => (
               <BookSpineFromRec
                 key={`${r.title}-${i}`}
                 rec={r}
                 idx={i}
                 spineUrl={recSpines[r.title] ?? undefined}
+                h={spineH}
               />
             ))}
           </Tier>
 
-          <Tier label="3단 · 이전에 읽은 책 (6개월+)">
+          <Tier label="3단 · 이전에 읽은 책 (6개월+)" h={tierH}>
             {oldBooks.length > 0 ? (
-              oldBooks.map((b) => <BookSpineFromBook key={b.id} book={b} />)
+              oldBooks.map((b) => <BookSpineFromBook key={b.id} book={b} h={spineH} />)
             ) : (
               <p className="w-full py-10 text-center text-[12px] italic text-stone-100/60">
                 6개월 이상 지난 완독 책이 없어요

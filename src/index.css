@@ -278,6 +278,59 @@ body {
     transform: rotate(38deg);
   }
 
+  /* ─── 손글씨(화이트보드) 마인드맵 테마 ─── */
+
+  /* 화이트보드 바탕: 아주 옅은 회색 + 미세 얼룩 */
+  .sketch-board {
+    background-color: #fcfcfa !important;
+    background-image:
+      radial-gradient(120% 100% at 30% 0%, rgba(255, 255, 255, 1), rgba(250, 250, 247, 0) 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='sb'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23sb)' opacity='0.028'/%3E%3C/svg%3E") !important;
+    border-color: #d8d5cc !important;
+  }
+
+  /* 손으로 그린 듯한 사각형 — 모서리 반경을 불규칙하게 */
+  .sketch-node {
+    border-radius: 255px 14px 225px 16px / 16px 225px 14px 255px !important;
+    background-color: rgba(255, 255, 255, 0.92) !important;
+    border-style: solid !important;
+    box-shadow: 1px 1px 0 rgba(60, 55, 45, 0.16) !important;
+  }
+  /* 두 번째 노드부터 모서리 패턴을 바꿔 손그림처럼 제각각 보이게 */
+  .react-flow__node:nth-child(3n) .sketch-node {
+    border-radius: 16px 240px 14px 230px / 230px 14px 240px 16px !important;
+  }
+  .react-flow__node:nth-child(3n + 1) .sketch-node {
+    border-radius: 230px 18px 240px 12px / 12px 235px 16px 240px !important;
+  }
+
+  /* 손글씨 테마일 때 노드 글씨는 필기체(마커) */
+  .sketch-theme .react-flow__node,
+  .sketch-theme .sketch-node,
+  .sketch-theme .sketch-node input,
+  .sketch-theme .sketch-node textarea {
+    font-family: "Nanum Pen Script", "Gaegu", "Gowun Dodum", sans-serif !important;
+    letter-spacing: 0.01em;
+  }
+  /* 펜글씨는 작게 보이므로 조금 키운다 */
+  .sketch-theme .sketch-node p,
+  .sketch-theme .sketch-node textarea {
+    font-size: 1.28em !important;
+    line-height: 1.25 !important;
+  }
+  /* 메모(포스트잇)도 손글씨로 */
+  .sketch-theme .react-flow__node-memo textarea,
+  .sketch-theme .react-flow__node-memo p {
+    font-family: "Gaegu", "Nanum Pen Script", sans-serif !important;
+    font-size: 1.18em !important;
+  }
+
+  /* 마커로 그은 듯한 연결선 */
+  .sketch-theme .react-flow__edge-path {
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
   /* 드래그 재부착 대상 노드 하이라이트 (은은한 잉크색 링) */
   .rf-attach-target > * {
     box-shadow: 0 0 0 3px rgba(34, 51, 90, 0.7), 0 0 24px rgba(34, 51, 90, 0.35) !important;

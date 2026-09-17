@@ -20,6 +20,7 @@ import type { MindMapNodeData, MindNodeKind, NodeLevel } from "../../types";
 import BookmarkNode from "./BookmarkNode";
 import MemoNode from "./MemoNode";
 import TapeEdge from "./TapeEdge";
+import SketchEdge from "./SketchEdge";
 import { MindMapContext, type MindMapActions } from "./MindMapContext";
 import { getPreset, mindMapPresets, type LayoutDirection } from "../../lib/mindmapPresets";
 
@@ -27,7 +28,7 @@ type FlowNode = Node<MindMapNodeData, MindNodeKind>;
 type Snapshot = { nodes: FlowNode[]; edges: Edge[] };
 
 const nodeTypes = { bookmark: BookmarkNode, memo: MemoNode };
-const edgeTypes = { tape: TapeEdge };
+const edgeTypes = { tape: TapeEdge, sketch: SketchEdge };
 const HISTORY_LIMIT = 50;
 
 interface MindMapEditorProps {
@@ -616,7 +617,11 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   return (
     <MindMapContext.Provider value={actions}>
       <div
-        className="paper-texture relative h-full w-full rounded-md border border-stone-300"
+        className={`relative h-full w-full rounded-md border ${
+          preset.handwritten
+            ? "sketch-board sketch-theme border-stone-300"
+            : "paper-texture border-stone-300"
+        }`}
         onPointerDown={handleMindmapPointerDown}
         onPointerUp={cancelDetachArm}
         onPointerLeave={cancelDetachArm}
@@ -663,11 +668,28 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
                 })
               : nodes
           }
-          edges={edges}
+          edges={
+            preset.handwritten
+              ? edges.map((e) =>
+                  e.type === "tape"
+                    ? e
+                    : {
+                        ...e,
+                        type: "sketch",
+                        style: { strokeWidth: 2.6, stroke: "#3f3a33", ...(e.style ?? {}) },
+                      }
+                )
+              : edges
+          }
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           preventScrolling={false}
-          defaultEdgeOptions={{ type: preset.edgeType, style: { strokeWidth: 2.5, stroke: "#57534e" } }}
+          defaultEdgeOptions={{
+            type: preset.edgeType,
+            style: preset.handwritten
+              ? { strokeWidth: 2.6, stroke: "#3f3a33" }
+              : { strokeWidth: 2.5, stroke: "#57534e" },
+          }}
           onNodesChange={onNodesChange}
           onEdgesChange={(changes) => {
             pushHistory(snapshotNow());

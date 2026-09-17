@@ -5,8 +5,10 @@ export interface MindMapPreset {
   label: string;
   description: string;
   direction: LayoutDirection;
-  edgeType: "smoothstep" | "step" | "default" | "straight";
+  edgeType: "smoothstep" | "step" | "default" | "straight" | "sketch";
   nodeShapeClass: string;
+  /** 손글씨 테마: 화이트보드 배경 + 필기체 + 손으로 그린 테두리 */
+  handwritten?: boolean;
 }
 
 export const mindMapPresets: MindMapPreset[] = [
@@ -41,6 +43,15 @@ export const mindMapPresets: MindMapPreset[] = [
     direction: "right",
     edgeType: "straight",
     nodeShapeClass: "rounded-2xl shadow-lg",
+  },
+  {
+    id: "sketch",
+    label: "손글씨",
+    description: "화이트보드 · 필기체 · 마커 느낌",
+    direction: "right",
+    edgeType: "sketch",
+    nodeShapeClass: "sketch-node",
+    handwritten: true,
   },
   {
     id: "organic",

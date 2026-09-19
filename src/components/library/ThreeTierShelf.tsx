@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Book } from "../../types";
 import { getDailyRecommendations, type BookRec } from "../../lib/recommendations";
@@ -173,6 +173,17 @@ function BookSpineFromRec({
   );
 }
 
+/** 추천 갱신 횟수 — 버튼을 누를 때마다 증가. 새로고침해도 유지 */
+const REC_NONCE_KEY = "chaekgalpi-rec-nonce";
+function loadRecNonce(): number {
+  try {
+    const n = Number(localStorage.getItem(REC_NONCE_KEY) ?? "0");
+    return Number.isFinite(n) ? n : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /** 추천 도서 책등 캐시 (제목 → URL|null). localStorage 에 보관 */
 const REC_CACHE_KEY = "chaekgalpi-rec-spines";
 function loadRecCache(): Record<string, string | null> {
@@ -194,8 +205,10 @@ interface TierProps {
   label: string;
   children: React.ReactNode;
   h: number;
+  /** 라벨 우측에 놓을 버튼 등 */
+  action?: React.ReactNode;
 }
-function Tier({ label, children, h }: TierProps) {
+function Tier({ label, children, h, action }: TierProps) {
   return (
     <div className="wood-panel relative">
       <div
@@ -205,13 +218,19 @@ function Tier({ label, children, h }: TierProps) {
         {children}
       </div>
       <span className="wood-label pointer-events-none absolute left-2 top-1">{label}</span>
+      {action && <div className="absolute right-2 top-1 z-10">{action}</div>}
       <div className="wood-plank absolute inset-x-1 bottom-0 h-[10px]" />
     </div>
   );
 }
 
 export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: ThreeTierShelfProps) {
-  const recs = getDailyRecommendations(allBooks);
+  const [recNonce, setRecNonce] = useState<number>(loadRecNonce);
+  const [refreshing, setRefreshing] = useState(false);
+  const recs = useMemo(
+    () => getDailyRecommendations(allBooks, recNonce),
+    [allBooks, recNonce]
+  );
   const { shortLandscape } = useViewport();
   const spineH = shortLandscape ? SPINE_HEIGHT_SHORT : SPINE_HEIGHT_DEFAULT;
   const tierH = spineH + 35;
@@ -222,9 +241,13 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
   // 추천 책(2단)도 제목으로 실제 책등을 찾아 채운다 (한 번 찾으면 캐시)
   useEffect(() => {
     const missing = recs.filter((r) => !(r.title in recSpines));
-    if (missing.length === 0) return;
+    if (missing.length === 0) {
+      setRefreshing(false);
+      return;
+    }
     let cancelled = false;
 
+    setRefreshing(true);
     (async () => {
       const next: Record<string, string | null> = {};
       for (const r of missing) {
@@ -233,7 +256,9 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
         // 통신 실패면 캐시에 넣지 않아 다음에 다시 시도
         if (definitive || spineUrl) next[r.title] = spineUrl;
       }
-      if (cancelled || Object.keys(next).length === 0) return;
+      if (cancelled) return;
+      setRefreshing(false);
+      if (Object.keys(next).length === 0) return;
       setRecSpines((prev) => {
         const merged = { ...prev, ...next };
         saveRecCache(merged);
@@ -309,7 +334,29 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
             )}
           </Tier>
 
-          <Tier label="2단 · 추천 책" h={tierH}>
+          <Tier
+            label="2단 · 추천 책"
+            h={tierH}
+            action={
+              <button
+                onClick={() => {
+                  const next = recNonce + 1;
+                  setRecNonce(next);
+                  try {
+                    localStorage.setItem(REC_NONCE_KEY, String(next));
+                  } catch {
+                    /* 저장 실패는 무시 */
+                  }
+                }}
+                disabled={refreshing}
+                className="flex items-center gap-1 rounded-full border border-white/40 bg-white/85 px-2 py-0.5 text-[11px] font-medium text-stone-700 shadow disabled:opacity-60"
+                title="다른 책 추천받기"
+              >
+                <span className={refreshing ? "inline-block animate-spin" : "inline-block"}>↻</span>
+                {refreshing ? "찾는 중" : "새 추천"}
+              </button>
+            }
+          >
             {recs.map((r, i) => (
               <BookSpineFromRec
                 key={`${r.title}-${i}`}

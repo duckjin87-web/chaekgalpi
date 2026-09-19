@@ -88,17 +88,20 @@ function inferUserGenres(books: Book[]): Set<string> {
 }
 
 /**
- * 오늘의 추천 5권 — 매일 바뀌지만 하루 안에는 고정.
+ * 추천 5권 — 기본적으로 매일 바뀌고 하루 안에는 고정.
  * 사용자의 관심 장르 2개 + 관심 밖 장르 3개(폭 넓히기)로 구성.
+ *
+ * @param nonce 갱신 횟수. 0 이면 그날의 기본 추천, 올릴수록 다른 조합이 나온다.
+ *              (사용자가 '새로고침' 을 누를 때마다 증가)
  */
-export function getDailyRecommendations(books: Book[]): BookRec[] {
+export function getDailyRecommendations(books: Book[], nonce = 0): BookRec[] {
   const userTitles = new Set(books.map((b) => b.title));
   const userGenres = inferUserGenres(books);
   const preferred = GENRE_ROTATION.filter((g) => userGenres.has(g));
   const other = GENRE_ROTATION.filter((g) => !userGenres.has(g));
 
   // 하루 시드로 관심 장르 2개 + 그 외 3개 선정 (관심 장르가 부족하면 그 외에서 보충)
-  const seed = daySeed();
+  const seed = daySeed(nonce * 7919);
   const shuffledPreferred = [...preferred].sort((a, b) => {
     const sa = (a.charCodeAt(0) + seed) % 997;
     const sb = (b.charCodeAt(0) + seed) % 997;

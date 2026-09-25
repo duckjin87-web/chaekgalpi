@@ -22,11 +22,21 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (editing) {
-      setDraft(data.text);
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    }
+    if (!editing) return;
+    setDraft(data.text);
+    // 다음 프레임에 실제 내용이 들어간 뒤 높이를 맞춘다.
+    // (이걸 안 하면 rows=1 높이 그대로라 커서가 있는 마지막 줄만 보인다)
+    requestAnimationFrame(() => {
+      const ta = inputRef.current;
+      if (!ta) return;
+      ta.style.height = "auto";
+      ta.style.height = `${ta.scrollHeight}px`;
+      ta.focus();
+      // 모바일에서 전체 선택은 실수로 지우기 쉬워 커서만 끝으로 보낸다
+      const end = ta.value.length;
+      ta.setSelectionRange(end, end);
+      ta.scrollTop = 0;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 
@@ -89,6 +99,8 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
       style={{
         backgroundColor: data.color,
         minWidth: style.minWidth,
+        // 편집 중에는 크기를 조절해 둔 노드라도 내용만큼 늘어나게 한다
+        ...(editing ? { height: "auto", minHeight: "100%" } : null),
         padding: style.padding,
         borderWidth: style.borderWidth,
         borderStyle: "solid",
@@ -125,8 +137,13 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
           <textarea
             ref={inputRef}
             rows={1}
-            className="nodrag w-full resize-none overflow-hidden rounded bg-white/95 px-1 leading-snug text-stone-900 outline-none"
-            style={{ fontSize: style.fontSize, fontWeight: style.fontWeight }}
+            className="nodrag w-full resize-none rounded bg-white/95 px-1 leading-snug text-stone-900 outline-none"
+            style={{
+              fontSize: style.fontSize,
+              fontWeight: style.fontWeight,
+              maxHeight: "45vh",
+              overflowY: "auto",
+            }}
             value={draft}
             onChange={(e) => {
               setDraft(e.target.value);

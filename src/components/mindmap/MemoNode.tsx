@@ -32,10 +32,17 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
   }
 
   useEffect(() => {
-    if (editing) {
-      setDraft(data.text);
-      textRef.current?.focus();
-    }
+    if (!editing) return;
+    setDraft(data.text);
+    requestAnimationFrame(() => {
+      const ta = textRef.current;
+      if (!ta) return;
+      ta.focus();
+      const end = ta.value.length;
+      ta.setSelectionRange(end, end);
+      // 커서를 끝에 두면 마지막 줄만 보이므로, 읽기 좋게 맨 위로 되돌린다
+      ta.scrollTop = 0;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 

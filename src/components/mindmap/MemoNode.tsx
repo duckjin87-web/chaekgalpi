@@ -198,7 +198,7 @@ export default function MemoNode({ id, data, selected }: NodeProps<MemoFlowNode>
       />
 
       <div
-        className="h-full w-full overflow-hidden rounded-sm p-3 text-stone-800"
+        className="node-paper h-full w-full overflow-hidden rounded-sm p-3 text-stone-800"
         style={{
           backgroundColor: data.color,
           opacity,

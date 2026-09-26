@@ -56,7 +56,9 @@ function makeNode(
     id: crypto.randomUUID(),
     type: "bookmark",
     position,
-    data: { text: "새 노드", color: bookmarkColor, memo: "", attachments: [], level, autoEdit: true },
+    // 내용은 비워 두고 '새 노드'는 플레이스홀더로만 보여준다.
+    // (기본값을 넣어두면 입력 전에 지워야 해서 번거롭다)
+    data: { text: "", color: bookmarkColor, memo: "", attachments: [], level, autoEdit: true },
   };
 }
 

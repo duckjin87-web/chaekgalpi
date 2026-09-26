@@ -157,6 +157,7 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
               if (next && e.currentTarget.parentElement?.contains(next)) return;
               commitDraft();
             }}
+            placeholder="새 노드"
             onKeyDown={(e) => {
               // Enter = 줄바꿈, Ctrl/⌘+Enter = 완료
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -193,10 +194,12 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
         </div>
       ) : (
         <p
-          className="break-words leading-snug"
+          className={`whitespace-pre-wrap break-words leading-snug ${
+            data.text ? "" : "opacity-40"
+          }`}
           style={{ fontSize: style.fontSize, fontWeight: style.fontWeight }}
         >
-          {data.text}
+          {data.text || "새 노드"}
         </p>
       )}
 

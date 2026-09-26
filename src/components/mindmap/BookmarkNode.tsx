@@ -93,7 +93,7 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
 
   return (
     <div
-      className={`node-paper relative h-full w-full text-stone-800 shadow-md transition-shadow ${nodeShapeClass} ${
+      className={`relative h-full w-full text-stone-800 shadow-md transition-shadow ${nodeShapeClass} ${
         selected ? "shadow-lg" : ""
       }`}
       style={{

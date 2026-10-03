@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Book, MindMap, MindMapEdge, MindMapNode, Review } from "../types";
 import { seedBooks, seedMindMaps, seedReviews } from "../data/seed";
+import { libraryStorage } from "../lib/persistStorage";
 import {
   bookmarkColors,
   memoColors,
@@ -132,6 +133,10 @@ export const useLibraryStore = create<LibraryState>()(
       reshuffleBookmarkPalette: () => set({ bookmarkPalette: shuffleBookmarkPalette() }),
       reshuffleMemoPalette: () => set({ memoPalette: shuffleMemoPalette() }),
     }),
-    { name: "chaekgalpi-library" }
+    {
+      name: "chaekgalpi-library",
+      // localStorage + IndexedDB 백업(쓰기 실패 감지 포함). 키 이름은 바꾸지 말 것.
+      storage: libraryStorage,
+    }
   )
 );

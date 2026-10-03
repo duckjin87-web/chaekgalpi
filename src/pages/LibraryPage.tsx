@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useLibraryStore } from "../store/useLibraryStore";
 import type { Book, BookStatus } from "../types";
 import BookCard from "../components/library/BookCard";
@@ -96,8 +97,13 @@ export default function LibraryPage() {
         </div>
         <div className="mt-1.5 flex items-center justify-between border-t-2 border-ink pt-1 text-[9px] tracking-[0.2em] text-stone-500">
           <span>나의 서재 · ARCHIVE</span>
-          <span>
-            ISSUE NO. {books.length} · {new Date().getFullYear()}
+          <span className="flex items-center gap-2">
+            <span>
+              ISSUE NO. {books.length} · {new Date().getFullYear()}
+            </span>
+            <Link to="/recover" title="데이터 점검 · 백업" className="tracking-normal">
+              🛟
+            </Link>
           </span>
         </div>
       </header>

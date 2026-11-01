@@ -23,6 +23,7 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const lastAppliedTitle = useRef<string | null>(null);
+  const searchSeq = useRef(0);
 
   const [bookType, setBookType] = useState<"종이책" | "전자책">("종이책");
 
@@ -81,16 +82,23 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
 
   async function handleSearch() {
     if (!title.trim()) return;
+    // 타이핑 중 여러 검색이 겹치면 마지막 요청의 결과만 반영한다
+    const reqId = ++searchSeq.current;
     setSearching(true);
     setSearchError(null);
     try {
       const found = await searchBooksByTitle(title);
+      if (reqId !== searchSeq.current) return;
       setResults(found);
       if (found.length === 0) setSearchError("검색 결과가 없어요. 직접 입력해주세요.");
-    } catch {
-      setSearchError("검색에 실패했어요. 직접 입력해주세요.");
+    } catch (e) {
+      if (reqId !== searchSeq.current) return;
+      setResults([]);
+      setSearchError(
+        `${e instanceof Error ? e.message : "검색에 실패했어요."} 직접 입력하거나 다시 검색해 주세요.`
+      );
     } finally {
-      setSearching(false);
+      if (reqId === searchSeq.current) setSearching(false);
     }
   }
 

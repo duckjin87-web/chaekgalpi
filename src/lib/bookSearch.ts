@@ -21,8 +21,13 @@ export async function searchBooksByTitle(title: string): Promise<BookSearchResul
   const query = title.trim();
   if (!query) return [];
   const res = await fetch(`/api/book-search?q=${encodeURIComponent(query)}&maxResults=5`);
-  if (!res.ok) throw new Error("도서 검색에 실패했어요.");
-  const data = (await res.json()) as ProxyResponse;
+  let data: ProxyResponse & { error?: string } = {};
+  try {
+    data = await res.json();
+  } catch {
+    /* 함수 시간 초과 등으로 JSON이 아닐 때 */
+  }
+  if (!res.ok) throw new Error(data.error ?? `도서 검색에 실패했어요. (HTTP ${res.status})`);
   return data.results ?? [];
 }
 

@@ -1,4 +1,7 @@
 {
+  "functions": {
+    "api/book-search.ts": { "maxDuration": 20 }
+  },
   "rewrites": [
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]

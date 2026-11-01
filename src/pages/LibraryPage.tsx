@@ -101,8 +101,12 @@ export default function LibraryPage() {
             <span>
               ISSUE NO. {books.length} · {new Date().getFullYear()}
             </span>
-            <Link to="/recover" title="데이터 점검 · 백업" className="tracking-normal">
-              🛟
+            <Link
+              to="/recover"
+              title="백업 · 복구"
+              className="rounded border border-stone-400 px-1.5 py-0.5 tracking-normal text-ink"
+            >
+              🛟 백업
             </Link>
           </span>
         </div>

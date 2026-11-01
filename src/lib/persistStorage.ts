@@ -1,5 +1,6 @@
 import { createJSONStorage } from "zustand/middleware";
 import { saveSnapshot } from "./backup";
+import { notifyDataChanged } from "./emailBackup";
 
 /** localStorage 쓰기가 실패했을 때 발생하는 이벤트 이름 */
 export const STORAGE_ERROR_EVENT = "chaekgalpi:storage-error";
@@ -71,6 +72,7 @@ export const libraryStorage = createJSONStorage(() => ({
   setItem: (name: string, value: string) => {
     // 백업을 먼저 예약한다. localStorage가 꽉 차서 실패해도 백업은 남는다.
     scheduleSnapshot(value);
+    notifyDataChanged(value); // 자동 메일 백업 예약
     try {
       localStorage.setItem(name, value);
       lastStorageError = null;

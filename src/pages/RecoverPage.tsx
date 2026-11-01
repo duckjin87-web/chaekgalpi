@@ -14,6 +14,7 @@ import {
   type Snapshot,
 } from "../lib/backup";
 import { lastStorageError } from "../lib/persistStorage";
+import BackupPanel from "../components/BackupPanel";
 
 const LS_LIMIT = 5 * 1024 * 1024; // 브라우저 공통 localStorage 한도(약 5MB)
 
@@ -76,9 +77,9 @@ export default function RecoverPage() {
   return (
     <div className="min-h-screen bg-white px-5 py-6 text-stone-800">
       <header className="mb-5 border-b-2 border-ink pb-2">
-        <p className="text-[9px] font-medium tracking-[0.4em] text-stone-500">DATA RESCUE</p>
+        <p className="text-[9px] font-medium tracking-[0.4em] text-stone-500">BACKUP · RESTORE</p>
         <h1 className="font-serif text-2xl font-black tracking-tight text-ink">
-          데이터 점검 · 복구
+          백업 · 복구
         </h1>
         <Link to="/" className="mt-1 inline-block text-xs text-emerald-700 underline">
           ← 서재로 돌아가기
@@ -95,9 +96,13 @@ export default function RecoverPage() {
         <p className="text-sm text-stone-500">확인 중…</p>
       ) : (
         <div className="space-y-6">
+          <BackupPanel />
+
+          <hr className="border-stone-200" />
+
           {/* 1. 지금 저장된 내용 */}
           <section>
-            <h2 className="mb-2 font-serif text-base font-bold text-ink">1. 지금 저장된 내용</h2>
+            <h2 className="mb-2 font-serif text-base font-bold text-ink">저장 상태 점검</h2>
             <dl className="rounded border border-stone-200 bg-stone-50 px-3 py-2 text-xs">
               <Row label="저장소 키" value="chaekgalpi-library" />
               <Row label="존재 여부" value={raw ? "있음" : "없음 (비어 있음)"} />
@@ -116,25 +121,16 @@ export default function RecoverPage() {
                 책 목록: {current.titles.join(", ")}
               </p>
             )}
-            {raw && (
-              <button
-                onClick={() => downloadJson(raw)}
-                className="mt-2 rounded bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white"
-              >
-                지금 내용 백업 파일로 내려받기
-              </button>
-            )}
           </section>
 
           {/* 2. 자동 백업 스냅샷 */}
           <section>
             <h2 className="mb-2 font-serif text-base font-bold text-ink">
-              2. 자동 백업 (IndexedDB)
+              기기 안 자동 백업
             </h2>
             {snapshots.length === 0 ? (
               <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800">
-                백업 스냅샷이 없습니다. 자동 백업은 이번 업데이트부터 쌓이기 시작하므로, 그
-                이전에 사라진 데이터는 이 목록에 남아 있지 않습니다.
+                기기 안 백업이 아직 없습니다. 앱을 쓰는 동안 자동으로 쌓입니다.
               </p>
             ) : (
               <ul className="space-y-1.5">
@@ -188,7 +184,7 @@ export default function RecoverPage() {
 
           {/* 3. 파일에서 복구 */}
           <section>
-            <h2 className="mb-2 font-serif text-base font-bold text-ink">3. 백업 파일에서 복구</h2>
+            <h2 className="mb-2 font-serif text-base font-bold text-ink">백업 파일에서 복구</h2>
             <button
               onClick={() => fileRef.current?.click()}
               className="rounded border border-stone-400 px-3 py-1.5 text-xs font-semibold text-ink"
@@ -210,7 +206,7 @@ export default function RecoverPage() {
 
           {/* 4. 저장 공간 */}
           <section>
-            <h2 className="mb-2 font-serif text-base font-bold text-ink">4. 저장 공간</h2>
+            <h2 className="mb-2 font-serif text-base font-bold text-ink">저장 공간</h2>
             <dl className="rounded border border-stone-200 bg-stone-50 px-3 py-2 text-xs">
               <Row
                 label="localStorage 사용량"

@@ -11,7 +11,6 @@
  *   GET  /api/backup-email                 → { configured: boolean }
  *   POST /api/backup-email
  *        헤더  x-backup-to: 받는 주소
- *              x-backup-reason: manual | auto | test
  *              x-backup-encoding: gzip | identity
  *        본문  저장 데이터(JSON) — gzip 이면 압축된 바이트
  *   응답: { ok: true } | { ok: false, error }
@@ -81,7 +80,6 @@ export default async function handler(req: any, res: any) {
   }
 
   const to = String(req.headers["x-backup-to"] ?? "").trim();
-  const reason = String(req.headers["x-backup-reason"] ?? "manual");
   const encoding = String(req.headers["x-backup-encoding"] ?? "identity");
 
   if (!EMAIL_RE.test(to) || to.length > 254) {
@@ -118,7 +116,7 @@ export default async function handler(req: any, res: any) {
   }
 
   const stamp = seoulStamp();
-  const kind = reason === "auto" ? "자동 백업" : reason === "test" ? "테스트 백업" : "수동 백업";
+  const kind = "백업";
   const titles = books
     .map((b) => `  · ${String(b?.title ?? "(제목 없음)").slice(0, 80)}`)
     .slice(0, 60)

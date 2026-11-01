@@ -1,4 +1,5 @@
 import type { Book, Review } from "../types";
+import { percentToPage } from "./progress";
 
 /**
  * 책 한 권의 기록을 가로(landscape) A4 보고서 PDF 로 만든다.
@@ -65,7 +66,9 @@ function buildReportNode(input: ExportInput): HTMLElement {
   const metaParts = [book.author, book.publisher, book.publishedDate?.slice(0, 10)].filter(Boolean);
   const progress =
     book.bookType === "전자책"
-      ? `${book.currentPage ?? 0}%`
+      ? book.pageCount
+        ? `${book.currentPage ?? 0}% (약 ${percentToPage(book.currentPage ?? 0, book.pageCount)} / ${book.pageCount}p)`
+        : `${book.currentPage ?? 0}%`
       : book.pageCount
         ? `${book.currentPage ?? 0} / ${book.pageCount}p`
         : "—";

@@ -7,6 +7,7 @@ import EditBookModal from "../components/library/EditBookModal";
 import CompletionCelebration from "../components/common/CompletionCelebration";
 import TouchScrollbar from "../components/common/TouchScrollbar";
 import { useViewport } from "../lib/useViewport";
+import { percentToPage } from "../lib/progress";
 import type { BookStatus } from "../types";
 
 type Tab = "mindmap" | "review";
@@ -180,6 +181,12 @@ export default function BookDetailPage() {
   const total = isEbook ? 100 : book.pageCount ?? 0;
   const current = book.currentPage ?? 0;
   const progress = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+  // 전자책: 입력 중인 % 값도 바로 페이지로 환산해 보여준다
+  const draftNum = pageDraft !== null && pageDraft.trim() !== "" ? Number(pageDraft) : current;
+  const ebookPage =
+    isEbook && book.pageCount && !Number.isNaN(draftNum)
+      ? percentToPage(draftNum, book.pageCount)
+      : null;
 
   return (
     <div ref={scrollRef} className="paper-texture h-screen overflow-y-auto">
@@ -325,9 +332,9 @@ export default function BookDetailPage() {
                 <p className="mt-0.5 text-sm font-medium text-stone-700">{book.bookType ?? "종이책"}</p>
               </div>
               <div className="paper-card rounded-lg border border-stone-200/60 p-2.5 text-center">
-                <p className="text-[11px] text-stone-400">{isEbook ? "📖 진도 단위" : "📖 전체 페이지"}</p>
+                <p className="text-[11px] text-stone-400">📖 전체 페이지</p>
                 <p className="mt-0.5 text-sm font-medium text-stone-700">
-                  {isEbook ? "% (0~100)" : book.pageCount ? `p. ${book.pageCount}` : "—"}
+                  {book.pageCount ? `p. ${book.pageCount}` : isEbook ? "% 진도" : "—"}
                 </p>
               </div>
               <div className="paper-card rounded-lg border border-stone-200/60 p-2.5 text-center">
@@ -368,8 +375,24 @@ export default function BookDetailPage() {
                     className="w-16 rounded border border-stone-300 px-1.5 py-0.5 text-center font-semibold text-stone-800"
                   />
                   <span className="text-stone-400">{isEbook ? "%" : `/ ${total}`}</span>
+                  {ebookPage !== null && (
+                    <span className="text-xs text-stone-500">
+                      ≈ p. <b className="font-semibold text-stone-700">{ebookPage}</b> / {book.pageCount}
+                    </span>
+                  )}
                   <span className="ml-auto font-semibold text-emerald-700">{progress}%</span>
                 </div>
+                {isEbook && !book.pageCount && (
+                  <p className="mt-1.5 text-[11px] text-stone-400">
+                    <button
+                      onClick={() => setShowEditModal(true)}
+                      className="text-emerald-700 underline"
+                    >
+                      전체 페이지 수
+                    </button>
+                    를 입력하면 %를 페이지로 환산해 보여드려요.
+                  </p>
+                )}
               </div>
             )}
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Book, BookStatus } from "../../types";
 import { normalizeSpineInput } from "../../lib/bookSpine";
+import { percentToPage } from "../../lib/progress";
 
 interface EditBookModalProps {
   book: Book;
@@ -28,7 +29,8 @@ export default function EditBookModal({ book, onClose, onSave }: EditBookModalPr
     onSave({
       author: author.trim(),
       bookType,
-      pageCount: isEbook ? undefined : pageCount ? Number(pageCount) : undefined,
+      // 전자책도 종이책 기준 전체 페이지를 저장해 두고 % → 페이지 환산에 쓴다
+      pageCount: pageCount ? Number(pageCount) : undefined,
       currentPage: currentPage ? Number(currentPage) : undefined,
       publisher: publisher.trim() || undefined,
       publishedDate: publishedDate.trim() || undefined,
@@ -72,18 +74,18 @@ export default function EditBookModal({ book, onClose, onSave }: EditBookModalPr
           </select>
         </div>
         <div className="flex gap-2">
-          {!isEbook && (
-            <div className="flex-1">
-              <label className="block text-xs font-medium text-stone-600">전체 페이지</label>
-              <input
-                type="number"
-                min={0}
-                className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
-                value={pageCount}
-                onChange={(e) => setPageCount(e.target.value)}
-              />
-            </div>
-          )}
+          <div className="flex-1">
+            <label className="block text-xs font-medium text-stone-600">
+              {isEbook ? "전체 페이지 (종이책 기준)" : "전체 페이지"}
+            </label>
+            <input
+              type="number"
+              min={0}
+              className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+              value={pageCount}
+              onChange={(e) => setPageCount(e.target.value)}
+            />
+          </div>
           <div className="flex-1">
             <label className="block text-xs font-medium text-stone-600">
               {isEbook ? "현재 진도 (%)" : "현재 페이지"}
@@ -96,6 +98,11 @@ export default function EditBookModal({ book, onClose, onSave }: EditBookModalPr
               value={currentPage}
               onChange={(e) => setCurrentPage(e.target.value)}
             />
+            {isEbook && Number(pageCount) > 0 && currentPage !== "" && (
+              <p className="mt-0.5 text-[11px] text-stone-500">
+                ≈ p. {percentToPage(Number(currentPage) || 0, Number(pageCount))} / {pageCount}
+              </p>
+            )}
           </div>
         </div>
         <div>

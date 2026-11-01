@@ -139,7 +139,8 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
       author: author.trim(),
       coverUrl,
       bookType,
-      pageCount: bookType === "전자책" ? undefined : pageCount ? Number(pageCount) : undefined,
+      // 전자책도 종이책 기준 전체 페이지를 저장해 두고 % → 페이지 환산에 쓴다
+      pageCount: pageCount ? Number(pageCount) : undefined,
       publisher: publisher.trim() || undefined,
       publishedDate: publishedDate.trim() || undefined,
       isbn: isbn.trim() || undefined,
@@ -236,20 +237,23 @@ export default function AddBookModal({ onClose, onAdd }: AddBookModalProps) {
             />
           </div>
         </div>
-        {bookType === "종이책" ? (
-          <div>
-            <label className="block text-xs font-medium text-stone-600">페이지 수</label>
-            <input
-              type="number"
-              min={0}
-              className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
-              value={pageCount}
-              onChange={(e) => setPageCount(e.target.value)}
-            />
-          </div>
-        ) : (
-          <p className="text-[11px] text-stone-400">📱 전자책은 진도를 %로 기록해요.</p>
-        )}
+        <div>
+          <label className="block text-xs font-medium text-stone-600">
+            {bookType === "전자책" ? "전체 페이지 (종이책 기준)" : "페이지 수"}
+          </label>
+          <input
+            type="number"
+            min={0}
+            className="mt-1 w-full rounded border border-stone-300 px-2 py-1 text-sm"
+            value={pageCount}
+            onChange={(e) => setPageCount(e.target.value)}
+          />
+          {bookType === "전자책" && (
+            <p className="mt-1 text-[11px] text-stone-400">
+              📱 전자책은 진도를 %로 기록하고, 이 페이지 수로 환산해 보여드려요.
+            </p>
+          )}
+        </div>
         <div>
           <label className="block text-xs font-medium text-stone-600">출판사</label>
           <input

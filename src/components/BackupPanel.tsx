@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { countsOf, downloadJson, readRaw } from "../lib/backup";
 import {
+  AUTO_EMAIL_ENABLED,
   EMAIL_RE,
   INTERVAL_LABEL,
   SETTINGS_EVENT,
@@ -138,21 +139,27 @@ export default function BackupPanel() {
 
       {/* 자동 메일 백업 */}
       <section>
-        <h2 className="mb-1 font-serif text-base font-bold text-ink">자동 메일 백업</h2>
-        <p className="mb-2 text-[11px] leading-relaxed text-stone-500">
-          책 · 마인드맵 · 독후감이 추가되거나 바뀌면, 수정을 마친 뒤(2분간 변경이 없거나 앱을
-          닫을 때) 아래 주소로 백업 파일을 자동으로 보냅니다.
-        </p>
-
-        {configured === false && (
-          <p className="mb-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
-            서버에 메일 발송 설정이 아직 없습니다. Vercel 환경변수{" "}
-            <code>GMAIL_USER</code>, <code>GMAIL_APP_PASSWORD</code> 를 등록하면 메일 백업이
-            동작합니다. (파일 내려받기 · 공유는 지금도 됩니다)
+        <h2 className="mb-1 font-serif text-base font-bold text-ink">
+          {AUTO_EMAIL_ENABLED ? "자동 메일 백업" : "메일 받을 주소"}
+        </h2>
+        {AUTO_EMAIL_ENABLED && (
+          <p className="mb-2 text-[11px] leading-relaxed text-stone-500">
+            책 · 마인드맵 · 독후감이 추가되거나 바뀌면, 수정을 마친 뒤(2분간 변경이 없거나 앱을 닫을
+            때) 아래 주소로 백업 파일을 자동으로 보냅니다.
           </p>
         )}
 
-        <label className="mb-1 block text-[11px] font-semibold text-stone-600">받을 메일 주소</label>
+        {configured === false && (
+          <p className="mb-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] leading-relaxed text-amber-800">
+            서버에 메일 발송 설정이 아직 없습니다. Vercel 환경변수 <code>GMAIL_USER</code>,{" "}
+            <code>GMAIL_APP_PASSWORD</code> 를 등록하면 메일 백업이 동작합니다. (파일 내려받기 ·
+            공유는 설정 없이 됩니다)
+          </p>
+        )}
+
+        <label className="mb-1 block text-[11px] font-semibold text-stone-600">
+          받을 메일 주소
+        </label>
         <div className="flex gap-1.5">
           <input
             type="email"
@@ -172,65 +179,75 @@ export default function BackupPanel() {
           </button>
         </div>
 
-        <label className="mt-3 flex items-center justify-between rounded border border-stone-200 px-3 py-2.5">
-          <span className="text-sm font-semibold text-ink">자동 백업 메일 받기</span>
-          <input
-            type="checkbox"
-            className="h-5 w-5 accent-emerald-700"
-            checked={settings.auto}
-            disabled={!settings.email}
-            onChange={(e) => {
-              setSettings(saveSettings({ auto: e.target.checked }));
-              setMsg({
-                ok: true,
-                text: e.target.checked
-                  ? "자동 백업을 켰습니다. 내용이 바뀌면 메일로 보내드립니다."
-                  : "자동 백업을 껐습니다.",
-              });
-            }}
-          />
-        </label>
-        {!settings.email && (
-          <p className="mt-1 text-[11px] text-stone-400">메일 주소를 저장하면 켤 수 있습니다.</p>
+        {AUTO_EMAIL_ENABLED && (
+          <>
+            <label className="mt-3 flex items-center justify-between rounded border border-stone-200 px-3 py-2.5">
+              <span className="text-sm font-semibold text-ink">자동 백업 메일 받기</span>
+              <input
+                type="checkbox"
+                className="h-5 w-5 accent-emerald-700"
+                checked={settings.auto}
+                disabled={!settings.email}
+                onChange={(e) => {
+                  setSettings(saveSettings({ auto: e.target.checked }));
+                  setMsg({
+                    ok: true,
+                    text: e.target.checked
+                      ? "자동 백업을 켰습니다. 내용이 바뀌면 메일로 보내드립니다."
+                      : "자동 백업을 껐습니다.",
+                  });
+                }}
+              />
+            </label>
+            {!settings.email && (
+              <p className="mt-1 text-[11px] text-stone-400">
+                메일 주소를 저장하면 켤 수 있습니다.
+              </p>
+            )}
+
+            <div className="mt-2 space-y-1">
+              {(Object.keys(INTERVAL_LABEL) as AutoInterval[]).map((k) => (
+                <label key={k} className="flex items-center gap-2 text-xs text-stone-700">
+                  <input
+                    type="radio"
+                    name="interval"
+                    className="accent-emerald-700"
+                    checked={settings.interval === k}
+                    onChange={() => setSettings(saveSettings({ interval: k }))}
+                  />
+                  {INTERVAL_LABEL[k]}
+                </label>
+              ))}
+            </div>
+
+            <dl className="mt-3 rounded border border-stone-200 bg-stone-50 px-3 py-2 text-xs">
+              <div className="flex justify-between gap-3 py-0.5">
+                <dt className="text-stone-500">마지막 발송</dt>
+                <dd className="text-right font-medium text-ink">
+                  {settings.lastSentAt
+                    ? new Date(settings.lastSentAt).toLocaleString("ko-KR")
+                    : "없음"}
+                </dd>
+              </div>
+              {settings.lastError && (
+                <div className="flex justify-between gap-3 py-0.5">
+                  <dt className="shrink-0 text-stone-500">마지막 오류</dt>
+                  <dd className="text-right font-medium text-red-600">{settings.lastError}</dd>
+                </div>
+              )}
+            </dl>
+          </>
         )}
 
-        <div className="mt-2 space-y-1">
-          {(Object.keys(INTERVAL_LABEL) as AutoInterval[]).map((k) => (
-            <label key={k} className="flex items-center gap-2 text-xs text-stone-700">
-              <input
-                type="radio"
-                name="interval"
-                className="accent-emerald-700"
-                checked={settings.interval === k}
-                onChange={() => setSettings(saveSettings({ interval: k }))}
-              />
-              {INTERVAL_LABEL[k]}
-            </label>
-          ))}
-        </div>
-
-        <dl className="mt-3 rounded border border-stone-200 bg-stone-50 px-3 py-2 text-xs">
-          <div className="flex justify-between gap-3 py-0.5">
-            <dt className="text-stone-500">마지막 발송</dt>
-            <dd className="text-right font-medium text-ink">
-              {settings.lastSentAt ? new Date(settings.lastSentAt).toLocaleString("ko-KR") : "없음"}
-            </dd>
-          </div>
-          {settings.lastError && (
-            <div className="flex justify-between gap-3 py-0.5">
-              <dt className="shrink-0 text-stone-500">마지막 오류</dt>
-              <dd className="text-right font-medium text-red-600">{settings.lastError}</dd>
-            </div>
-          )}
-        </dl>
-
-        <button
-          disabled={!raw || busy != null || !emailValid || configured === false}
-          onClick={() => emailNow("test")}
-          className={`${btn} mt-2 border border-stone-300 text-stone-600`}
-        >
-          {busy === "test" ? "보내는 중…" : "테스트 메일 보내기"}
-        </button>
+        {AUTO_EMAIL_ENABLED && (
+          <button
+            disabled={!raw || busy != null || !emailValid || configured === false}
+            onClick={() => emailNow("test")}
+            className={`${btn} mt-2 border border-stone-300 text-stone-600`}
+          >
+            {busy === "test" ? "보내는 중…" : "테스트 메일 보내기"}
+          </button>
+        )}
       </section>
     </div>
   );

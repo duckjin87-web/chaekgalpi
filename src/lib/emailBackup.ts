@@ -12,6 +12,12 @@ import { countsOf, looksLikeSeed, readRaw } from "./backup";
 
 const SETTINGS_KEY = "chaekgalpi-backup-settings";
 
+/**
+ * 자동 메일 백업 사용 여부. 지금은 수동 백업만 배포하므로 꺼둔다.
+ * true로 바꾸면 설정 화면과 자동 발송이 함께 켜진다.
+ */
+export const AUTO_EMAIL_ENABLED = false;
+
 export type AutoInterval = "change" | "hourly" | "daily";
 
 export const INTERVAL_LABEL: Record<AutoInterval, string> = {
@@ -163,10 +169,13 @@ let timer: number | null = null;
 function scheduleCheck(delay: number) {
   if (typeof window === "undefined") return;
   if (timer != null) window.clearTimeout(timer);
-  timer = window.setTimeout(() => {
-    timer = null;
-    void runAuto(false);
-  }, Math.max(0, delay));
+  timer = window.setTimeout(
+    () => {
+      timer = null;
+      void runAuto(false);
+    },
+    Math.max(0, delay)
+  );
 }
 
 /**
@@ -174,6 +183,7 @@ function scheduleCheck(delay: number) {
  * @param leaving 앱을 닫거나 백그라운드로 보낼 때 — 잠잠해질 때까지 기다리지 않는다
  */
 async function runAuto(leaving: boolean) {
+  if (!AUTO_EMAIL_ENABLED) return;
   const s = loadSettings();
   if (!s.auto || !EMAIL_RE.test(s.email) || sending) return;
   if (!navigator.onLine) return;
@@ -223,12 +233,13 @@ async function runAuto(leaving: boolean) {
 
 /** 저장될 때마다 호출된다 (persistStorage) */
 export function notifyDataChanged(json: string) {
+  if (!AUTO_EMAIL_ENABLED) return;
   latestJson = json;
   lastChangeAt = Date.now();
   if (loadSettings().auto) scheduleCheck(SETTLE_MS + 500);
 }
 
-if (typeof window !== "undefined") {
+if (typeof window !== "undefined" && AUTO_EMAIL_ENABLED) {
   // 앱을 열었을 때: 지난번에 못 보낸 변경이 있으면 보낸다
   window.setTimeout(() => void runAuto(false), 15_000);
   document.addEventListener("visibilitychange", () => {

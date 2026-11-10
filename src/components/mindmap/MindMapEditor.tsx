@@ -821,7 +821,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   return (
     <MindMapContext.Provider value={actions}>
       <div
-        className={`${zen ? "fixed inset-0 z-[45]" : "relative h-full w-full rounded-md"} border ${
+        className={`mm-canvas ${zen ? "fixed inset-0 z-[45]" : "relative h-full w-full rounded-md"} border ${
           preset.handwritten
             ? "sketch-board sketch-theme border-stone-300"
             : "paper-texture border-stone-300"
@@ -890,7 +890,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
             type: preset.edgeType,
             style: preset.handwritten
               ? { strokeWidth: 2.6, stroke: "#3f3a33" }
-              : { strokeWidth: 2.5, stroke: "#57534e" },
+              : { strokeWidth: "var(--mm-edge-width)", stroke: "var(--mm-edge)" },
           }}
           onNodesChange={onNodesChange}
           onEdgesChange={(changes) => {

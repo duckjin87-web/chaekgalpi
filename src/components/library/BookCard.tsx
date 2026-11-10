@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import TLink from "../common/TLink";
 import type { Book } from "../../types";
 import { randomBookmarkColor } from "../../theme";
 
@@ -30,13 +30,14 @@ export default function BookCard({ book }: BookCardProps) {
 
   return (
     <div className="px-2 pt-4">
-      <Link
+      <TLink
         to={`/book/${book.id}`}
         className="paper-card group relative flex w-32 shrink-0 flex-col gap-1.5 rounded-sm p-2 pb-2 transition-transform hover:-translate-y-1"
         style={{ transform: `rotate(${rotation}deg)` }}
       >
         <span className="tape tape-tc" />
         <div
+          data-cover
           className="flex h-44 w-full items-center justify-center overflow-hidden text-center text-sm text-white shadow-inner"
           style={{ backgroundColor: book.coverUrl ? undefined : accent }}
         >
@@ -58,7 +59,7 @@ export default function BookCard({ book }: BookCardProps) {
         >
           {statusLabel[book.status]}
         </span>
-      </Link>
+      </TLink>
     </div>
   );
 }

@@ -8,6 +8,8 @@ import CompletionCelebration from "../components/common/CompletionCelebration";
 import TouchScrollbar from "../components/common/TouchScrollbar";
 import { useViewport } from "../lib/useViewport";
 import { percentToPage } from "../lib/progress";
+import { useThemeSettings } from "../lib/appTheme";
+import TLink from "../components/common/TLink";
 import type { BookStatus } from "../types";
 
 type Tab = "mindmap" | "review";
@@ -176,11 +178,27 @@ export default function BookDetailPage() {
     setPageDraft(null);
   }
 
+  const { theme } = useThemeSettings();
   const days = daysSince(book.startDate ?? book.createdAt);
   const isEbook = book.bookType === "전자책";
   const total = isEbook ? 100 : book.pageCount ?? 0;
   const current = book.currentPage ?? 0;
   const progress = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+  const remainingLabel =
+    progress >= 100 || total <= 0
+      ? null
+      : isEbook
+        ? book.pageCount
+          ? `약 ${book.pageCount - percentToPage(current, book.pageCount)}쪽 남았어요`
+          : `${100 - progress}% 남았어요`
+        : `${Math.max(0, total - current)}쪽 남았어요`;
+  // 읽기 → 생각거리 → 독후감 진행 단계
+  const steps = [
+    { label: "읽기", done: progress >= 100 || book.status === "완독" },
+    { label: "생각", done: (book.promptAnswers ?? []).some((a) => a?.trim()) },
+    { label: "독후감", done: Boolean(review?.content?.trim()) },
+  ];
+  const currentStep = steps.findIndex((s) => !s.done);
   // 전자책: 입력 중인 % 값도 바로 페이지로 환산해 보여준다
   const draftNum = pageDraft !== null && pageDraft.trim() !== "" ? Number(pageDraft) : current;
   const ebookPage =
@@ -191,9 +209,9 @@ export default function BookDetailPage() {
   return (
     <div ref={scrollRef} className="paper-texture h-screen overflow-y-auto">
       <div className="paper-texture sticky top-0 z-30 flex items-center justify-between px-5 pb-1 pt-3">
-        <Link to="/" className="text-sm text-stone-500 hover:underline">
+        <TLink to="/" back className="text-sm text-stone-500 hover:underline">
           ← 서재로
-        </Link>
+        </TLink>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setShowInfo((v) => !v)}
@@ -263,9 +281,9 @@ export default function BookDetailPage() {
             {/* 매거진 화보형 헤더 */}
             <div className="relative mt-2">
               {/* 뒤에 깔린 잉크색 종이 레이어 */}
-              <div className="absolute inset-0 translate-x-1 translate-y-1.5 rotate-[1.2deg] rounded-sm bg-[#22335a]/85" />
+              <div className="absolute inset-0 translate-x-1 translate-y-1.5 rotate-[1.2deg] rounded-sm bg-ink opacity-85" />
               <div className="paper-card relative flex gap-4 rounded-sm p-4">
-                <div className="relative w-[110px] flex-shrink-0">
+                <div className="vt-cover-detail relative w-[110px] flex-shrink-0">
                   <span className="tape tape-tl" />
                   {book.coverUrl ? (
                     <img
@@ -354,12 +372,51 @@ export default function BookDetailPage() {
                     <span className="text-xs font-semibold text-amber-600">{days}일째</span>
                   )}
                 </div>
-                <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
-                  <div
-                    className="h-full rounded-full bg-emerald-600 transition-all"
-                    style={{ width: `${progress}%` }}
-                  />
+                <div className="mt-2 flex items-center gap-3">
+                  <div className="progress-track h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
+                    <div
+                      className="progress-fill h-full rounded-full bg-emerald-600 transition-all duration-500"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  {/* 리퀴드 글래스: 원형 진행률 */}
+                  {theme === "glass" && (
+                    <div
+                      className="grid h-11 w-11 flex-none place-items-center rounded-full"
+                      style={{
+                        background: `conic-gradient(rgb(var(--accent-600)) ${progress}%, rgb(var(--accent-600) / 0.15) 0)`,
+                      }}
+                    >
+                      <span className="grid h-8 w-8 place-items-center rounded-full bg-white/95 text-[10px] font-bold text-stone-800">
+                        {progress}%
+                      </span>
+                    </div>
+                  )}
                 </div>
+                {/* 남은 분량 — 끝내지 않은 일이 눈에 보이면 이어 읽게 된다 */}
+                {remainingLabel && (
+                  <p className="mt-1.5 text-[11px] font-medium text-emerald-700">{remainingLabel}</p>
+                )}
+                {/* 네오 브루탈: 읽기 → 생각 → 독후감 단계 표시 */}
+                {theme === "brutal" && (
+                  <div className="mt-2 flex items-center gap-1.5 text-[10px] font-bold">
+                    {steps.map((s, i) => (
+                      <span key={s.label} className="flex flex-1 items-center gap-1.5 last:flex-none">
+                        <span
+                          className="grid h-5 w-5 flex-none place-items-center rounded-full border-2 border-black"
+                          style={{
+                            background: s.done ? "#111" : i === currentStep ? "rgb(var(--second-400))" : "#fff",
+                            color: s.done ? "#fff" : "#111",
+                          }}
+                        >
+                          {s.done ? "✓" : i + 1}
+                        </span>
+                        <span>{s.label}</span>
+                        {i < steps.length - 1 && <span className="h-0.5 flex-1 bg-black" />}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-2 flex items-center gap-2 text-sm">
                   {!isEbook && <span className="text-stone-400">p.</span>}
                   <input

@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useLibraryStore } from "../store/useLibraryStore";
 import type { Book, BookStatus } from "../types";
 import BookCard from "../components/library/BookCard";
@@ -22,6 +22,18 @@ export default function LibraryPage() {
   const [yearFilter, setYearFilter] = useState<number | "전체">("전체");
   const [monthFilter, setMonthFilter] = useState<number | "전체">("전체");
   const [showAddModal, setShowAddModal] = useState(false);
+
+  // 하단 탭 바의 '책 추가'로 들어오면 추가 창을 연다
+  const location = useLocation();
+  const addRequest = (location.state as { add?: number } | null)?.add;
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!addRequest) return;
+    setShowAddModal(true);
+    // 요청은 한 번만 쓴다 — 남겨두면 새로고침·뒤로가기 때 추가 창이 다시 열린다
+    navigate("/", { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addRequest]);
 
   const filteredBooks = useMemo(() => {
     return books.filter((book) => {
@@ -83,7 +95,7 @@ export default function LibraryPage() {
   const showDateFilters = finishedBooks.length > DATE_FILTER_THRESHOLD;
 
   return (
-    <div className="paper-texture min-h-screen px-5 pb-6 pt-4">
+    <div className="paper-texture min-h-screen px-5 pb-24 pt-4">
       <header className="mb-3">
         <p className="text-[9px] font-medium tracking-[0.4em] text-ink">READING JOURNAL</p>
         <div className="flex items-end justify-between">
@@ -97,17 +109,8 @@ export default function LibraryPage() {
         </div>
         <div className="mt-1.5 flex items-center justify-between border-t-2 border-ink pt-1 text-[9px] tracking-[0.2em] text-stone-500">
           <span>나의 서재 · ARCHIVE</span>
-          <span className="flex items-center gap-2">
-            <span>
-              ISSUE NO. {books.length} · {new Date().getFullYear()}
-            </span>
-            <Link
-              to="/recover"
-              title="백업 · 복구"
-              className="rounded border border-stone-400 px-1.5 py-0.5 tracking-normal text-ink"
-            >
-              🛟 백업
-            </Link>
+          <span>
+            ISSUE NO. {books.length} · {new Date().getFullYear()}
           </span>
         </div>
       </header>
@@ -131,7 +134,7 @@ export default function LibraryPage() {
             <p className="font-serif text-base font-bold text-ink">읽는 중 · 읽고 싶은 책</p>
             <span className="text-[9px] tracking-[0.3em] text-stone-400">ON MY DESK</span>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-3">
+          <div className="stagger flex gap-2 overflow-x-auto pb-3">
             {inProgressBooks.map((book) => (
               <BookCard key={book.id} book={book} />
             ))}

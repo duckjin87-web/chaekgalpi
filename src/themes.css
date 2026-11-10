@@ -1,0 +1,537 @@
+/*
+ * 테마 3종 — 종이 서재(paper) · 리퀴드 글래스(glass) · 네오 브루탈(brutal)
+ *
+ * <html data-theme> 로 고르고, 색상 배열은 --accent-* / --second-* / --ink / --page-* 변수로 바뀐다.
+ * (변수는 src/lib/appTheme.ts 가 넣는다. 아래 :root 값은 종이 서재 기본 배열)
+ * 성능 원칙: 흐림(backdrop-filter)은 탭 바 · 상단 바 · 시트 등 한두 곳에만 쓰고,
+ * 카드나 마인드맵 노드처럼 여러 개 그려지는 요소에는 쓰지 않는다.
+ */
+
+:root {
+  --accent-50: 236 253 245;
+  --accent-100: 209 250 229;
+  --accent-200: 167 243 208;
+  --accent-300: 110 231 183;
+  --accent-400: 52 211 153;
+  --accent-500: 16 185 129;
+  --accent-600: 5 150 105;
+  --accent-700: 4 120 87;
+  --accent-800: 6 95 70;
+  --accent-900: 6 78 59;
+  --second-50: 255 251 235;
+  --second-100: 254 243 199;
+  --second-200: 253 230 138;
+  --second-300: 252 211 77;
+  --second-400: 251 191 36;
+  --second-500: 245 158 11;
+  --second-600: 217 119 6;
+  --second-700: 180 83 9;
+  --second-800: 146 64 14;
+  --second-900: 120 53 15;
+  --ink: #22335a;
+  --page-1: #ffffff;
+
+  /* 마인드맵 */
+  --mm-edge: #57534e;
+  --mm-edge-width: 2.5;
+  --mm-node-border: transparent;
+  --mm-node-selected: #292524;
+  --mm-node-bw: 0px;
+}
+
+.text-ink {
+  color: var(--ink);
+}
+.bg-ink,
+.bg-ink:hover {
+  background-color: var(--ink);
+}
+.border-ink {
+  border-color: var(--ink);
+}
+
+/* 마인드맵 연결선 — 테마 색을 따른다 (손글씨 · 컬러 가지는 자체 색 유지) */
+.mm-canvas .react-flow__edge-path {
+  stroke: var(--mm-edge);
+  stroke-width: var(--mm-edge-width);
+}
+
+/* ───────────────────────── 종이 서재 ───────────────────────── */
+
+html[data-theme="paper"] .paper-texture {
+  background-color: var(--page-1);
+}
+
+/* ───────────────────────── 리퀴드 글래스 ───────────────────────── */
+
+html[data-theme="glass"] {
+  --mm-edge: rgb(var(--accent-500));
+  --mm-node-border: rgba(255, 255, 255, 0.95);
+  --mm-node-selected: rgb(var(--accent-700));
+  --mm-node-bw: 1.5px;
+}
+html[data-theme="glass"] body {
+  font-family: "IBM Plex Sans KR", "Gowun Dodum", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  color: var(--ink);
+  background-color: var(--page-3);
+}
+/* 고정 배경 — background-attachment: fixed 는 모바일에서 버벅여서 고정 레이어로 깐다 */
+html[data-theme="glass"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(120% 60% at 10% 0%, var(--page-1) 0%, transparent 58%),
+    radial-gradient(110% 60% at 100% 18%, var(--page-2) 0%, transparent 62%),
+    var(--page-3);
+}
+html[data-theme="glass"] .font-serif {
+  font-family: "IBM Plex Sans KR", "Gowun Dodum", sans-serif;
+  letter-spacing: -0.03em;
+}
+html[data-theme="glass"] .paper-texture {
+  background: transparent;
+}
+html[data-theme="glass"] .sticky.paper-texture {
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+}
+html[data-theme="glass"] .paper-card {
+  background: rgba(255, 255, 255, 0.66);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8),
+    0 10px 26px -12px rgb(var(--accent-800) / 0.35);
+}
+html[data-theme="glass"] .fixed .paper-card {
+  background: rgba(255, 255, 255, 0.94); /* 모달은 글이 읽히도록 더 불투명하게 */
+}
+html[data-theme="glass"] .tape {
+  display: none;
+}
+html[data-theme="glass"] .wood-frame {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 12px 28px -14px rgb(var(--accent-800) / 0.4);
+}
+html[data-theme="glass"] .wood-panel {
+  background: linear-gradient(180deg, rgb(var(--accent-200) / 0.35), rgba(255, 255, 255, 0.2));
+  box-shadow: none;
+}
+html[data-theme="glass"] .wood-plank,
+html[data-theme="glass"] .wood-divider {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 6px rgb(var(--accent-800) / 0.18);
+  border-radius: 4px;
+}
+html[data-theme="glass"] .wood-label {
+  color: rgb(var(--accent-800));
+}
+html[data-theme="glass"] .mm-canvas {
+  background: rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.9);
+  border-radius: 18px;
+}
+html[data-theme="glass"] .mm-node {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.08));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 18px -8px rgb(var(--accent-800) / 0.4);
+}
+html[data-theme="glass"] .progress-track {
+  background: rgb(var(--accent-600) / 0.14);
+}
+html[data-theme="glass"] .progress-fill {
+  background: linear-gradient(90deg, rgb(var(--accent-600)), rgb(var(--second-500)));
+}
+html[data-theme="glass"] button:active {
+  transform: scale(0.96);
+  transition: transform 0.25s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+/* ───────────────────────── 네오 브루탈 ───────────────────────── */
+
+html[data-theme="brutal"] {
+  --mm-edge: #111111;
+  --mm-edge-width: 3;
+  --mm-node-border: #111111;
+  --mm-node-selected: #111111;
+  --mm-node-bw: 2.5px;
+}
+html[data-theme="brutal"] body {
+  font-family: "IBM Plex Sans KR", "Gowun Dodum", system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  font-weight: 500;
+  color: #111111;
+  background-color: var(--page-1);
+}
+html[data-theme="brutal"] .font-serif {
+  font-family: "Black Han Sans", "IBM Plex Sans KR", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+html[data-theme="brutal"] .paper-texture {
+  background: var(--page-1);
+}
+html[data-theme="brutal"] .paper-card {
+  background: #ffffff;
+  border: 2.5px solid #111111;
+  border-radius: 10px;
+  box-shadow: 4px 4px 0 #111111;
+}
+html[data-theme="brutal"] .tape {
+  display: none;
+}
+html[data-theme="brutal"] [class*="text-emerald-"] {
+  color: #111111;
+}
+html[data-theme="brutal"] button[class*="bg-emerald-"],
+html[data-theme="brutal"] button[class*="bg-amber-"],
+html[data-theme="brutal"] button.bg-ink {
+  color: #111111;
+  border: 2px solid #111111;
+  box-shadow: 2px 2px 0 #111111;
+}
+html[data-theme="brutal"] button[class*="bg-emerald-"] {
+  background-color: rgb(var(--accent-700));
+}
+html[data-theme="brutal"] button.bg-ink {
+  background-color: var(--page-2);
+}
+html[data-theme="brutal"] button:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+html[data-theme="brutal"] input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+html[data-theme="brutal"] select,
+html[data-theme="brutal"] textarea:not(.nodrag) {
+  border: 2px solid #111111;
+  border-radius: 6px;
+}
+html[data-theme="brutal"] .wood-frame {
+  background: rgb(var(--second-400));
+  border: 2.5px solid #111111;
+  border-radius: 10px;
+  box-shadow: 5px 5px 0 #111111;
+}
+html[data-theme="brutal"] .wood-panel {
+  background: rgb(var(--accent-200));
+  box-shadow: none;
+}
+html[data-theme="brutal"] .wood-plank,
+html[data-theme="brutal"] .wood-divider {
+  background: #111111;
+  box-shadow: none;
+  border-radius: 0;
+}
+html[data-theme="brutal"] .wood-label {
+  color: #111111;
+}
+html[data-theme="brutal"] .mm-canvas {
+  background: var(--page-1);
+  border: 2.5px solid #111111;
+  border-radius: 10px;
+}
+html[data-theme="brutal"] .mm-node {
+  box-shadow: 4px 4px 0 #111111;
+}
+html[data-theme="brutal"] .mm-memo {
+  border: 2.5px solid #111111;
+  box-shadow: 4px 4px 0 #111111 !important;
+}
+html[data-theme="brutal"] .progress-track {
+  height: 14px;
+  background: #ffffff;
+  border: 2px solid #111111;
+  border-radius: 5px;
+}
+html[data-theme="brutal"] .progress-fill {
+  background: rgb(var(--accent-700));
+  border-radius: 0;
+}
+
+/* ───────────────────────── 하단 탭 바 ───────────────────────── */
+
+.tabbar {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: flex;
+  max-width: 460px;
+  margin: 0 auto;
+}
+.tabbar .tab {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 46px;
+  font-size: 11px;
+  font-weight: 600;
+  -webkit-tap-highlight-color: transparent;
+}
+.tabbar .tab svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 종이 서재 — 슬라이딩 필: 알약이 튕기듯 미끄러진다 */
+html[data-theme="paper"] .tabbar {
+  padding: 5px;
+  background: #fffdf8;
+  border: 1px solid #e3dac8;
+  border-radius: 18px;
+  box-shadow: 0 6px 18px rgba(80, 60, 30, 0.18);
+  color: #8a7f6e;
+}
+html[data-theme="paper"] .tabbar::before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  bottom: 5px;
+  left: 5px;
+  width: calc((100% - 10px) / var(--n));
+  border-radius: 13px;
+  background: rgb(var(--accent-700));
+  transform: translateX(calc(var(--i) * 100%));
+  transition: transform 0.5s cubic-bezier(0.34, 1.5, 0.64, 1);
+}
+html[data-theme="paper"] .tabbar .tab {
+  transition: color 0.25s;
+}
+html[data-theme="paper"] .tabbar .tab.on {
+  color: #ffffff;
+}
+
+/* 리퀴드 글래스 — 익스팬딩 라벨: 누른 탭이 늘어나며 이름이 나온다 */
+html[data-theme="glass"] .tabbar {
+  padding: 5px;
+  gap: 4px;
+  justify-content: space-between;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 10px 28px -8px rgb(var(--accent-800) / 0.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  color: rgb(var(--accent-800) / 0.75);
+}
+html[data-theme="glass"] .tabbar .tab {
+  flex: 0 1 50px;
+  overflow: hidden;
+  border-radius: 999px;
+  transition:
+    flex-grow 0.45s cubic-bezier(0.3, 1.3, 0.5, 1),
+    background-color 0.3s,
+    color 0.3s;
+}
+html[data-theme="glass"] .tabbar .tab span {
+  max-width: 0;
+  opacity: 0;
+  white-space: nowrap;
+  transition:
+    max-width 0.45s cubic-bezier(0.3, 1.3, 0.5, 1),
+    opacity 0.3s;
+}
+html[data-theme="glass"] .tabbar .tab.on {
+  flex-grow: 1;
+  color: #ffffff;
+  background: linear-gradient(120deg, rgb(var(--accent-700)), rgb(var(--second-500)));
+  box-shadow: 0 4px 14px rgb(var(--accent-700) / 0.45);
+}
+html[data-theme="glass"] .tabbar .tab.on span {
+  max-width: 64px;
+  opacity: 1;
+}
+
+/* 네오 브루탈 — 아이콘 필: 아이콘이 채워지며 통 튄다 */
+html[data-theme="brutal"] .tabbar {
+  background: #ffffff;
+  border: 2.5px solid #111111;
+  border-radius: 12px;
+  box-shadow: 4px 4px 0 #111111;
+  color: #111111;
+}
+html[data-theme="brutal"] .tabbar .tab {
+  flex-direction: column;
+  gap: 0;
+  height: 54px;
+  font-size: 10px;
+  box-shadow: none;
+  border: 0;
+}
+html[data-theme="brutal"] .tabbar .tab:active {
+  transform: none;
+}
+html[data-theme="brutal"] .tabbar .tab svg {
+  width: 30px;
+  height: 30px;
+  padding: 4px;
+  border: 2.5px solid transparent;
+  border-radius: 8px;
+}
+html[data-theme="brutal"] .tabbar .tab.on svg {
+  background: rgb(var(--second-400));
+  border-color: #111111;
+  box-shadow: 2px 2px 0 #111111;
+  animation: tab-hop 0.55s cubic-bezier(0.3, 1.8, 0.5, 1);
+}
+@keyframes tab-hop {
+  0% {
+    transform: translateY(0) scale(0.8);
+  }
+  45% {
+    transform: translateY(-9px) scale(1.12);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* ───────────────────────── 바텀시트 (테마 메뉴) ───────────────────────── */
+
+.sheet-backdrop {
+  animation: sheet-fade 0.2s ease-out both;
+}
+.sheet {
+  animation: sheet-up 0.38s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+html[data-theme="glass"] .sheet {
+  animation-timing-function: cubic-bezier(0.3, 1.35, 0.5, 1);
+}
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+/* ───────────────────────── 순차 등장 (목록) ───────────────────────── */
+
+.stagger > * {
+  animation: stagger-in 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+.stagger > *:nth-child(2) { animation-delay: 60ms; }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(n + 6) { animation-delay: 300ms; }
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+}
+html[data-theme="glass"] .stagger > * {
+  animation-timing-function: cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+html[data-theme="brutal"] .stagger > * {
+  animation-timing-function: cubic-bezier(0.3, 1.9, 0.5, 1);
+}
+
+/* ───────────────────────── 화면 전환 (View Transitions) ───────────────────────── */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.3s;
+}
+/* 종이 서재 — 카드 확장: 누른 책 표지가 상세 화면 표지로 이어진다 */
+.vt-cover-detail {
+  view-transition-name: book-cover;
+}
+::view-transition-group(book-cover) {
+  animation-duration: 0.42s;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+html:not([data-theme="paper"]) .vt-cover-detail {
+  view-transition-name: none;
+}
+/* 리퀴드 글래스 — 페이드 스루 + 줌 */
+html[data-theme="glass"]::view-transition-old(root) {
+  animation: vt-fade-out 0.16s ease-in both;
+}
+html[data-theme="glass"]::view-transition-new(root) {
+  animation: vt-zoom-in 0.36s cubic-bezier(0.3, 1.25, 0.5, 1) 0.1s both;
+}
+/* 네오 브루탈 — 푸시: 옆으로 밀고 들어온다 */
+html[data-theme="brutal"]::view-transition-old(root) {
+  animation: vt-push-out 0.28s cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+html[data-theme="brutal"]::view-transition-new(root) {
+  animation: vt-push-in 0.28s cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+html[data-theme="brutal"][data-nav="back"]::view-transition-old(root) {
+  animation-name: vt-push-out-back;
+}
+html[data-theme="brutal"][data-nav="back"]::view-transition-new(root) {
+  animation-name: vt-push-in-back;
+}
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes vt-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+@keyframes vt-push-out {
+  to {
+    transform: translateX(-100%);
+  }
+}
+@keyframes vt-push-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes vt-push-out-back {
+  to {
+    transform: translateX(100%);
+  }
+}
+@keyframes vt-push-in-back {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabbar *,
+  .tabbar::before,
+  .sheet,
+  .sheet-backdrop,
+  .stagger > * {
+    animation: none !important;
+    transition: none !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

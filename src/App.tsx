@@ -4,6 +4,7 @@ import BookDetailPage from "./pages/BookDetailPage";
 import RecoverPage from "./pages/RecoverPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import DataGuard from "./components/DataGuard";
+import BottomTabBar from "./components/common/BottomTabBar";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/book/:bookId" element={<BookDetailPage />} />
         <Route path="/recover" element={<RecoverPage />} />
       </Routes>
+      <BottomTabBar />
       <DataGuard />
     </ErrorBoundary>
   );

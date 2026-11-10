@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import TLink from "../common/TLink";
 import type { Book } from "../../types";
 
 interface BookSpineProps {
@@ -32,7 +32,7 @@ export default function BookSpine({ book, compact }: BookSpineProps) {
   const rotate = ((h % 5) - 2) * 0.4; // 살짝만 기울임
 
   return (
-    <Link
+    <TLink
       to={`/book/${book.id}`}
       className="book-spine group flex flex-shrink-0 flex-col items-center justify-start transition-transform hover:-translate-y-1"
       style={{
@@ -47,6 +47,6 @@ export default function BookSpine({ book, compact }: BookSpineProps) {
     >
       <span className="book-spine-title">{book.title}</span>
       {book.author && <span className="book-spine-author">{book.author}</span>}
-    </Link>
+    </TLink>
   );
 }

@@ -17,7 +17,7 @@ export default function DataGuard() {
 
   return (
     <div
-      className="fixed inset-x-2 bottom-2 z-[60] flex items-start gap-2 rounded-lg bg-red-700 px-3 py-2.5 text-[12px] leading-snug text-white shadow-2xl"
+      className="fixed inset-x-2 bottom-20 z-[60] flex items-start gap-2 rounded-lg bg-red-700 px-3 py-2.5 text-[12px] leading-snug text-white shadow-2xl"
       role="status"
     >
       <div className="min-w-0 flex-1">

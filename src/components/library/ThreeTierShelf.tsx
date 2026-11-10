@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import TLink from "../common/TLink";
 import type { Book } from "../../types";
 import { getDailyRecommendations, type BookRec } from "../../lib/recommendations";
 import { useViewport } from "../../lib/useViewport";
@@ -63,7 +63,7 @@ function BookSpineFromBook({ book, h: spineH }: { book: Book; h: number }) {
 
   if (useRealSpine) {
     return (
-      <Link
+      <TLink
         to={`/book/${book.id}`}
         className="relative block flex-shrink-0 overflow-hidden rounded-[2px] shadow-[1px_3px_5px_-2px_rgba(20,10,5,0.5)] transition-transform hover:-translate-y-1"
         style={shared}
@@ -86,12 +86,12 @@ function BookSpineFromBook({ book, h: spineH }: { book: Book; h: number }) {
               "linear-gradient(90deg, rgba(0,0,0,0.22) 0%, rgba(255,255,255,0.10) 10%, rgba(255,255,255,0) 45%, rgba(255,255,255,0.06) 88%, rgba(0,0,0,0.26) 100%)",
           }}
         />
-      </Link>
+      </TLink>
     );
   }
 
   return (
-    <Link
+    <TLink
       to={`/book/${book.id}`}
       className="book-spine group flex flex-shrink-0 flex-col items-center justify-start transition-transform hover:-translate-y-1"
       style={{
@@ -106,7 +106,7 @@ function BookSpineFromBook({ book, h: spineH }: { book: Book; h: number }) {
       <span className="book-spine-title" style={{ fontSize: spineFontSize(book.title, spineH) }}>
         {book.title}
       </span>
-    </Link>
+    </TLink>
   );
 }
 

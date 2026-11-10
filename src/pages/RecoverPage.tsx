@@ -28,7 +28,7 @@ export default function RecoverPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white px-5 py-6 text-stone-800">
+    <div className="paper-texture min-h-screen px-5 pb-28 pt-6 text-stone-800">
       <header className="mb-5 border-b-2 border-ink pb-2">
         <p className="text-[9px] font-medium tracking-[0.4em] text-stone-500">BACKUP</p>
         <h1 className="font-serif text-2xl font-black tracking-tight text-ink">백업</h1>

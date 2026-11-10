@@ -95,7 +95,7 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
 
   return (
     <div
-      className={`relative h-full w-full text-stone-800 shadow-md transition-shadow ${nodeShapeClass} ${
+      className={`mm-node relative h-full w-full text-stone-800 shadow-md transition-shadow ${nodeShapeClass} ${
         selected ? "shadow-lg" : ""
       }`}
       style={{
@@ -104,9 +104,10 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
         // 편집 중에는 크기를 조절해 둔 노드라도 내용만큼 늘어나게 한다
         ...(editing ? { height: "auto", minHeight: "100%" } : null),
         padding: style.padding,
-        borderWidth: style.borderWidth,
+        // 테두리 굵기·색은 테마가 정한 값을 따른다 (src/themes.css 의 --mm-node-*)
+        borderWidth: `max(${style.borderWidth}px, var(--mm-node-bw, 0px))`,
         borderStyle: "solid",
-        borderColor: selected ? "#292524" : "transparent",
+        borderColor: selected ? "var(--mm-node-selected, #292524)" : "var(--mm-node-border, transparent)",
       }}
       onDoubleClick={(e) => {
         e.stopPropagation();

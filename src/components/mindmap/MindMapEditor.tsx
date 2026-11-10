@@ -23,6 +23,8 @@ import TapeEdge from "./TapeEdge";
 import SketchEdge from "./SketchEdge";
 import { MindMapContext, type MindMapActions } from "./MindMapContext";
 import { getPreset, mindMapPresets, type LayoutDirection } from "../../lib/mindmapPresets";
+import { branchColorMap, buildTree, descendantsOf, layoutTree } from "../../lib/mindmapLayout";
+import OutlinePanel, { type OutlineRow } from "./OutlinePanel";
 
 type FlowNode = Node<MindMapNodeData, MindNodeKind>;
 type Snapshot = { nodes: FlowNode[]; edges: Edge[] };
@@ -154,7 +156,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   const updateMindMap = useLibraryStore((s) => s.updateMindMap);
   const bookmarkPalette = useLibraryStore((s) => s.bookmarkPalette);
   const memoPalette = useLibraryStore((s) => s.memoPalette);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView, setCenter } = useReactFlow();
   const preset = getPreset(mindMap?.layoutPreset);
 
   const nodeKindLookup = useMemo(() => {
@@ -220,6 +222,39 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   // 마지막으로 사용한 노드 레벨(제목/대/중/소)을 기억해 다음 노드 생성 시 그대로 유지
   const lastLevelRef = useRef<NodeLevel>("medium");
 
+  const [showOutline, setShowOutline] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [zen, setZen] = useState(false);
+
+  // 트리 해석은 연결선과 노드 구성이 바뀔 때만 다시 한다 (드래그 중 매 프레임 계산 방지)
+  const nodeIdsKey = nodes.map((n) => n.id).join(",");
+  const tree = useMemo(
+    () =>
+      buildTree(
+        nodes.map((n) => ({ id: n.id, x: n.position.x, y: n.position.y })),
+        edges,
+        preset.direction
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [edges, nodeIdsKey, preset.direction]
+  );
+  const collapsedKey = nodes
+    .filter((n) => n.data.collapsed)
+    .map((n) => n.id)
+    .join(",");
+  const hiddenIds = useMemo(() => {
+    const hidden = new Set<string>();
+    if (!collapsedKey) return hidden;
+    for (const id of collapsedKey.split(",")) {
+      for (const d of descendantsOf(id, tree.children)) hidden.add(d);
+    }
+    return hidden;
+  }, [collapsedKey, tree]);
+  const branchColors = useMemo(
+    () => (preset.rainbow ? branchColorMap(tree) : null),
+    [preset.rainbow, tree]
+  );
+
   function pushHistory(snapshot: Snapshot) {
     historyRef.current.push(snapshot);
     if (historyRef.current.length > HISTORY_LIMIT) historyRef.current.shift();
@@ -263,6 +298,15 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
         redo();
         return;
       }
+      // XMind 방식: Tab = 하위 노드, Enter = 형제 노드
+      if (e.key === "Tab" || e.key === "Enter") {
+        const selected = nodes.filter((n) => n.selected);
+        if (selected.length !== 1) return;
+        e.preventDefault();
+        if (e.key === "Tab") addChild(selected[0].id);
+        else addSibling(selected[0].id);
+        return;
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
         const selected = nodes.filter((n) => n.selected);
         if (selected.length === 0) return;
@@ -276,7 +320,7 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes, edges]);
+  }, [nodes, edges, tree]);
 
   // 저장 로직: 매 변경마다 전체 스토어를 localStorage에 직렬화하면
   // 드래그/연속 편집 중 프리즈(먹통)가 나므로 디바운스로 묶는다.
@@ -379,6 +423,128 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
     pushHistory(snapshotNow());
     const node = makeNode(kind, position, randomFrom(bookmarkPalette), randomFrom(memoPalette), lastLevelRef.current);
     setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), { ...node, selected: true }]);
+  }
+
+  // 형제 노드: 같은 부모 아래, 지금 노드 바로 옆(아래)에 만든다
+  function addSibling(id: string) {
+    const node = nodes.find((n) => n.id === id);
+    if (!node) return;
+    const parentId = tree.parent.get(id);
+    if (!parentId) {
+      addChild(id);
+      return;
+    }
+    pushHistory(snapshotNow());
+    const w = node.measured?.width ?? node.width ?? 160;
+    const h = node.measured?.height ?? node.height ?? 60;
+    const down = preset.direction === "down";
+    const pos = { x: node.position.x + (down ? w + 24 : 0), y: node.position.y + (down ? 0 : h + 16) };
+    const hits = (p: { x: number; y: number }) =>
+      nodes.some((n) => {
+        if (hiddenIds.has(n.id)) return false;
+        const nw = n.measured?.width ?? n.width ?? 160;
+        const nh = n.measured?.height ?? n.height ?? 60;
+        return !(
+          p.x + 150 < n.position.x ||
+          n.position.x + nw < p.x ||
+          p.y + 44 < n.position.y ||
+          n.position.y + nh < p.y
+        );
+      });
+    for (let i = 0; i < 12 && hits(pos); i += 1) {
+      if (down) pos.x += 60;
+      else pos.y += 30;
+    }
+    const kind = (node.type ?? "bookmark") as MindNodeKind;
+    const sibling = makeNode(kind, pos, node.data.color, node.data.color, node.data.level ?? lastLevelRef.current);
+    setNodes((nds) => [...nds.map((n) => ({ ...n, selected: false })), { ...sibling, selected: true }]);
+    setEdges((eds) =>
+      addEdge(
+        { id: crypto.randomUUID(), source: parentId, target: sibling.id, type: edgeTypeForPair(kind, parentId) },
+        eds
+      )
+    );
+  }
+
+  function toggleCollapse(id: string) {
+    pushHistory(snapshotNow());
+    setNodes((nds) =>
+      nds.map((n) => (n.id === id ? { ...n, data: { ...n.data, collapsed: !n.data.collapsed } } : n))
+    );
+  }
+
+  function foldInfo(id: string): { children: number; hidden: number } {
+    const children = tree.children.get(id)?.length ?? 0;
+    const collapsed = nodes.find((n) => n.id === id)?.data.collapsed;
+    return { children, hidden: collapsed ? descendantsOf(id, tree.children).length : 0 };
+  }
+
+  // 자동 정렬: 뿌리는 제자리에 두고 가지를 프리셋 방향대로 가지런히 다시 놓는다
+  function tidy() {
+    const positions = layoutTree(
+      nodes.map((n) => ({
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+        w: n.measured?.width ?? n.width ?? 160,
+        h: n.measured?.height ?? n.height ?? 60,
+        collapsed: n.data.collapsed,
+      })),
+      edges,
+      preset.direction
+    );
+    if (!positions.size) return;
+    pushHistory(snapshotNow());
+    setNodes((nds) => nds.map((n) => (positions.has(n.id) ? { ...n, position: positions.get(n.id)! } : n)));
+    window.setTimeout(() => void fitView({ duration: 400, padding: 0.2 }), 60);
+  }
+
+  // 목차(아웃라인): 트리를 들여쓴 목록으로
+  function outlineRows(): OutlineRow[] {
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    const rows: OutlineRow[] = [];
+    const walk = (id: string, depth: number) => {
+      const n = byId.get(id);
+      if (!n) return;
+      rows.push({
+        id,
+        depth,
+        text: n.data.text,
+        marker: n.data.marker,
+        memo: n.type === "memo",
+        children: tree.children.get(id)?.length ?? 0,
+      });
+      for (const k of tree.children.get(id) ?? []) walk(k, depth + 1);
+    };
+    for (const r of tree.roots) walk(r, 0);
+    // 순환 연결처럼 뿌리에서 닿지 않는 노드도 빠뜨리지 않는다
+    const listed = new Set(rows.map((r) => r.id));
+    for (const n of nodes) if (!listed.has(n.id)) walk(n.id, 0);
+    return rows;
+  }
+
+  function focusNode(id: string) {
+    // 접힌 가지 안에 있으면 조상들을 펼친다
+    const ancestors = new Set<string>();
+    for (let p = tree.parent.get(id); p; p = tree.parent.get(p)) ancestors.add(p);
+    setNodes((nds) =>
+      nds.map((n) => ({
+        ...n,
+        selected: n.id === id,
+        data: ancestors.has(n.id) && n.data.collapsed ? { ...n.data, collapsed: false } : n.data,
+      }))
+    );
+    const target = nodes.find((n) => n.id === id);
+    if (target) {
+      const c = nodeCenter(target);
+      void setCenter(c.x, c.y, { zoom: 1, duration: 400 });
+    }
+    setShowOutline(false);
+  }
+
+  function toggleZen() {
+    setZen((v) => !v);
+    window.setTimeout(() => void fitView({ duration: 300, padding: 0.2 }), 120);
   }
 
   // 상단 버튼: 선택된 노드가 있으면 연결 생성, 없으면 단독 생성
@@ -610,16 +776,52 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
   const actions: MindMapActions = {
     updateNodeData,
     addChild,
+    addSibling,
+    toggleCollapse,
+    foldInfo,
     deleteNode,
     deleteEdge,
     clearSelection,
     nodeShapeClass: preset.nodeShapeClass,
   };
 
+  const displayNodes =
+    hoverAttachId || armedDetachId || hiddenIds.size
+      ? nodes.map((n) => {
+          if (hiddenIds.has(n.id)) return { ...n, hidden: true };
+          if (n.id === hoverAttachId) return { ...n, className: "rf-attach-target" };
+          if (n.id === armedDetachId) return { ...n, className: "rf-detach-armed" };
+          return n;
+        })
+      : nodes;
+
+  const displayEdges = useMemo(
+    () =>
+      edges.map((e) => {
+        const hidden = hiddenIds.has(e.target) || hiddenIds.has(e.source);
+        if (e.type === "tape") return hidden ? { ...e, hidden } : e;
+        if (preset.handwritten) {
+          return {
+            ...e,
+            hidden,
+            type: "sketch",
+            style: { strokeWidth: 2.6, stroke: "#3f3a33", ...(e.style ?? {}) },
+          };
+        }
+        const color = branchColors?.get(e.target);
+        if (color) return { ...e, hidden, style: { strokeWidth: 2.5, stroke: color } };
+        return hidden ? { ...e, hidden } : e;
+      }),
+    [edges, hiddenIds, preset.handwritten, branchColors]
+  );
+
+  const toolBtn =
+    "rounded border border-stone-300 bg-white/90 px-2 py-1 text-xs text-stone-700 shadow-sm active:scale-95";
+
   return (
     <MindMapContext.Provider value={actions}>
       <div
-        className={`relative h-full w-full rounded-md border ${
+        className={`${zen ? "fixed inset-0 z-[45]" : "relative h-full w-full rounded-md"} border ${
           preset.handwritten
             ? "sketch-board sketch-theme border-stone-300"
             : "paper-texture border-stone-300"
@@ -656,33 +858,31 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
               ))}
             </select>
           </div>
-          <p className="text-xs text-stone-400">
-            노드 더블클릭/꾹 누르면 이름 수정 · 노드의 + 또는 오른쪽 점을 끌어 연결 · 노드를 꾹 눌러 끌어 쓰레기통에 놓으면 삭제 · Delete=노드 삭제 · Ctrl+Z=실행취소 · Ctrl+Shift+Z=다시실행
-          </p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button onClick={tidy} className={toolBtn} title="가지를 가지런히 자동 정렬">
+              ✨ 정렬
+            </button>
+            <button onClick={() => setShowOutline(true)} className={toolBtn} title="목차로 보기">
+              ☰ 목차
+            </button>
+            <button onClick={toggleZen} className={toolBtn} title="전체 화면으로 집중">
+              {zen ? "⤡ 닫기" : "⤢ 전체화면"}
+            </button>
+            <button onClick={() => setShowHelp((v) => !v)} className={toolBtn} title="사용법">
+              ?
+            </button>
+          </div>
+          {showHelp && (
+            <p className="max-w-xs rounded bg-white/90 p-2 text-xs leading-relaxed text-stone-500 shadow-sm">
+              노드 더블클릭/꾹 누르면 수정 · 노드 위 <b>+</b> 하위 노드, <b>+↓</b> 형제 노드 · 노드 옆
+              동그라미로 가지 접기/펼치기 · 꾹 눌러 끌어 쓰레기통에 놓으면 삭제 · 키보드: Tab=하위,
+              Enter=형제, Delete=삭제, Ctrl+Z=실행취소
+            </p>
+          )}
         </div>
         <ReactFlow
-          nodes={
-            hoverAttachId || armedDetachId
-              ? nodes.map((n) => {
-                  if (n.id === hoverAttachId) return { ...n, className: "rf-attach-target" };
-                  if (n.id === armedDetachId) return { ...n, className: "rf-detach-armed" };
-                  return n;
-                })
-              : nodes
-          }
-          edges={
-            preset.handwritten
-              ? edges.map((e) =>
-                  e.type === "tape"
-                    ? e
-                    : {
-                        ...e,
-                        type: "sketch",
-                        style: { strokeWidth: 2.6, stroke: "#3f3a33", ...(e.style ?? {}) },
-                      }
-                )
-              : edges
-          }
+          nodes={displayNodes}
+          edges={displayEdges}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           preventScrolling={false}
@@ -723,6 +923,10 @@ function MindMapCanvas({ bookId }: MindMapEditorProps) {
           <Controls />
           <MiniMap />
         </ReactFlow>
+
+        {showOutline && (
+          <OutlinePanel rows={outlineRows()} onPick={focusNode} onClose={() => setShowOutline(false)} />
+        )}
 
         {/* 좌측 하단: 실행취소/다시실행 물리 버튼 (Ctrl+Z / Ctrl+Shift+Z 보조) */}
         <button

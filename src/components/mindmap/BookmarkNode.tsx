@@ -14,7 +14,9 @@ const handleClass =
 export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkFlowNode>) {
   const level = data.level ?? "medium";
   const style = nodeLevelStyle[level];
-  const { updateNodeData, addChild, nodeShapeClass } = useMindMapActions();
+  const { updateNodeData, addChild, addSibling, toggleCollapse, foldInfo, nodeShapeClass } =
+    useMindMapActions();
+  const fold = foldInfo(id);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(data.text);
   const pressTimer = useRef<number | null>(null);
@@ -199,11 +201,33 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
           }`}
           style={{ fontSize: style.fontSize, fontWeight: style.fontWeight }}
         >
+          {data.marker && <span className="mr-1">{data.marker}</span>}
           {data.text || "새 노드"}
         </p>
       )}
 
       <Handle type="source" position={Position.Right} className={handleClass} />
+
+      {/* 가지 접기/펼치기 — 접히면 숨겨진 노드 수를 보여준다 */}
+      {fold.children > 0 && (
+        <button
+          className={`nodrag absolute top-1/2 z-20 flex h-5 min-w-5 -translate-y-1/2 items-center justify-center rounded-full border px-1 text-[10px] font-bold leading-none shadow-sm ${
+            data.collapsed
+              ? "border-emerald-700 bg-emerald-700 text-white"
+              : "border-stone-400 bg-white text-stone-500"
+          }`}
+          style={{ right: -32 }}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleCollapse(id);
+          }}
+          onDoubleClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          title={data.collapsed ? "가지 펼치기" : "가지 접기"}
+        >
+          {data.collapsed ? fold.hidden : "−"}
+        </button>
+      )}
 
       {/* 상단 중앙 버튼 바: 📷(선택시)  ×(사진 제거·있을때)  +(항상) */}
       <div className="nodrag absolute -top-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5">
@@ -237,10 +261,22 @@ export default function BookmarkNode({ id, data, selected }: NodeProps<BookmarkF
             e.stopPropagation();
             addChild(id);
           }}
-          title="연결된 노드 추가"
+          title="하위 노드 추가"
         >
           +
         </button>
+        {selected && (
+          <button
+            className="flex h-6 items-center justify-center rounded-full border border-emerald-700 bg-white px-1.5 text-[11px] font-bold leading-none text-emerald-700 shadow"
+            onClick={(e) => {
+              e.stopPropagation();
+              addSibling(id);
+            }}
+            title="형제 노드 추가 (같은 단계)"
+          >
+            +↓
+          </button>
+        )}
       </div>
       <input
         ref={fileRef}

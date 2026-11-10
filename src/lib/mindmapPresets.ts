@@ -9,6 +9,8 @@ export interface MindMapPreset {
   nodeShapeClass: string;
   /** 손글씨 테마: 화이트보드 배경 + 필기체 + 손으로 그린 테두리 */
   handwritten?: boolean;
+  /** 큰 가지마다 연결선 색을 다르게 */
+  rainbow?: boolean;
 }
 
 export const mindMapPresets: MindMapPreset[] = [
@@ -19,6 +21,15 @@ export const mindMapPresets: MindMapPreset[] = [
     direction: "right",
     edgeType: "smoothstep",
     nodeShapeClass: "rounded-md",
+  },
+  {
+    id: "branch",
+    label: "컬러 가지",
+    description: "좌→우 · 곡선 · 가지별 색",
+    direction: "right",
+    edgeType: "default",
+    nodeShapeClass: "rounded-xl",
+    rainbow: true,
   },
   {
     id: "tree",

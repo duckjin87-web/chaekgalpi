@@ -63,6 +63,10 @@ export interface MindMapNodeData extends Record<string, unknown> {
   autoEdit?: boolean;
   /** 인상 깊은 문장에 곁들일 사진 (data URL) */
   photoUrl?: string;
+  /** 가지 접기 — 하위 노드를 숨긴다 */
+  collapsed?: boolean;
+  /** 마커(⭐ ❗ 등) — 글 앞에 붙는 표시 */
+  marker?: string;
 }
 
 export interface MindMapNode {

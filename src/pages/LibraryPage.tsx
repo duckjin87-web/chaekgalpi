@@ -6,6 +6,7 @@ import BookCard from "../components/library/BookCard";
 import AddBookModal from "../components/library/AddBookModal";
 import LibraryToolbar from "../components/library/LibraryToolbar";
 import ThreeTierShelf from "../components/library/ThreeTierShelf";
+import JournalSummary from "../components/library/JournalSummary";
 
 const DATE_FILTER_THRESHOLD = 8;
 const SIX_MONTHS_MS = 6 * 30 * 24 * 60 * 60 * 1000;
@@ -55,19 +56,21 @@ export default function LibraryPage() {
   const mindMaps = useLibraryStore((s) => s.mindMaps);
   const reviews = useLibraryStore((s) => s.reviews);
 
+  const lastTouched = (b: Book): number => {
+    const mm = mindMaps.find((m) => m.bookId === b.id)?.updatedAt;
+    const rv = reviews.find((r) => r.bookId === b.id)?.updatedAt;
+    return Math.max(
+      new Date(mm ?? 0).getTime() || 0,
+      new Date(rv ?? 0).getTime() || 0,
+      new Date(b.createdAt).getTime() || 0
+    );
+  };
+
   const inProgressBooks = useMemo(() => {
-    const lastTouched = (b: Book): number => {
-      const mm = mindMaps.find((m) => m.bookId === b.id)?.updatedAt;
-      const rv = reviews.find((r) => r.bookId === b.id)?.updatedAt;
-      return Math.max(
-        new Date(mm ?? 0).getTime() || 0,
-        new Date(rv ?? 0).getTime() || 0,
-        new Date(b.createdAt).getTime() || 0
-      );
-    };
     return filteredBooks
       .filter((b) => b.status !== "완독")
       .sort((a, b) => lastTouched(b) - lastTouched(a));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredBooks, mindMaps, reviews]);
 
   const years = useMemo(() => {
@@ -96,24 +99,24 @@ export default function LibraryPage() {
 
   return (
     <div className="paper-texture min-h-screen px-5 pb-24 pt-4">
-      <header className="mb-3">
-        <p className="text-[9px] font-medium tracking-[0.4em] text-ink">READING JOURNAL</p>
-        <div className="flex items-end justify-between">
-          <h1 className="font-serif text-4xl font-black leading-none tracking-tight text-ink">
-            책갈피
-          </h1>
-          <div className="pb-0.5 text-right text-[9px] leading-tight tracking-[0.22em] text-stone-500">
-            <p>ONE PAGE,</p>
-            <p>MY STORY.</p>
-          </div>
-        </div>
-        <div className="mt-1.5 flex items-center justify-between border-t-2 border-ink pt-1 text-[9px] tracking-[0.2em] text-stone-500">
-          <span>나의 서재 · ARCHIVE</span>
-          <span>
-            ISSUE NO. {books.length} · {new Date().getFullYear()}
-          </span>
-        </div>
+      <header className="journal-header mb-4 flex flex-col gap-0.5 px-1">
+        <span className="text-[13px] font-semibold text-stone-500">
+          {new Date().toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "long" })}
+        </span>
+        <h1 className="font-serif text-[34px] font-extrabold leading-tight tracking-tight text-ink">책갈피</h1>
       </header>
+
+      {/* 저널형 요약 — 지금 읽는 책 · 이번 달 완독 · 마인드맵 기록 · 월별 완독 */}
+      <div className="mb-5">
+        <JournalSummary
+          books={books}
+          mindMaps={mindMaps}
+          current={books
+            .filter((b) => b.status === "읽는중")
+            .sort((a, b) => lastTouched(b) - lastTouched(a))[0]}
+        />
+      </div>
+
       <LibraryToolbar
         search={search}
         onSearchChange={setSearch}
@@ -130,8 +133,7 @@ export default function LibraryPage() {
       {inProgressBooks.length > 0 && (
         <div className="mb-6">
           <div className="mb-1 flex items-baseline gap-2">
-            <p className="font-serif text-base font-bold text-ink">읽는 중 · 읽고 싶은 책</p>
-            <span className="text-[9px] tracking-[0.3em] text-stone-400">ON MY DESK</span>
+            <p className="font-serif text-[22px] font-bold tracking-tight text-ink">읽는 중 · 읽고 싶은 책</p>
           </div>
           <div className="stagger flex gap-2 overflow-x-auto pb-3">
             {inProgressBooks.map((book) => (

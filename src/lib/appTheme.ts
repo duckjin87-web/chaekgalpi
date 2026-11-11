@@ -8,7 +8,7 @@ import { useSyncExternalStore } from "react";
  * tailwind.config.js 에서 연결해 두었기 때문에, 화면 코드를 고치지 않고도 색이 바뀐다.
  */
 
-export type ThemeId = "paper" | "glass" | "brutal";
+export type ThemeId = "journal" | "paper" | "glass" | "brutal";
 
 export interface Palette {
   id: string;
@@ -33,6 +33,17 @@ export interface ThemeDef {
 }
 
 export const THEMES: ThemeDef[] = [
+  {
+    id: "journal",
+    label: "저널",
+    description: "애플 기본 앱처럼 깔끔한 카드",
+    palettes: [
+      { id: "blue", label: "블루", accent: "#007aff", second: "#ff9500", ink: "#000000", page: ["#f2f2f7"], swatch: ["#007aff", "#ff9500", "#f2f2f7"] },
+      { id: "green", label: "그린", accent: "#248a3d", second: "#ff9500", ink: "#000000", page: ["#f2f2f7"], swatch: ["#34c759", "#ff9500", "#f2f2f7"] },
+      { id: "purple", label: "퍼플", accent: "#8944ab", second: "#ff9f0a", ink: "#000000", page: ["#f2f2f7"], swatch: ["#af52de", "#ff9f0a", "#f2f2f7"] },
+      { id: "graphite", label: "그라파이트", accent: "#3a3a3c", second: "#ff9500", ink: "#000000", page: ["#f2f2f7"], swatch: ["#3a3a3c", "#ff9500", "#f2f2f7"] },
+    ],
+  },
   {
     id: "paper",
     label: "종이 서재",
@@ -69,21 +80,23 @@ export const THEMES: ThemeDef[] = [
 ];
 
 export interface ThemeSettings {
+  /** 설정 형식 버전 — 2부터 저널이 기본 */
+  v?: number;
   theme: ThemeId;
   /** 테마별로 마지막에 고른 색상 배열 */
   palettes: Partial<Record<ThemeId, string>>;
 }
 
 const KEY = "chaekgalpi-theme";
-const DEFAULT: ThemeSettings = { theme: "paper", palettes: {} };
+const DEFAULT: ThemeSettings = { v: 2, theme: "journal", palettes: {} };
 
 function load(): ThemeSettings {
   try {
     const s = JSON.parse(localStorage.getItem(KEY) ?? "{}");
-    return {
-      theme: THEMES.some((t) => t.id === s.theme) ? s.theme : "paper",
-      palettes: typeof s.palettes === "object" && s.palettes ? s.palettes : {},
-    };
+    const palettes = typeof s.palettes === "object" && s.palettes ? s.palettes : {};
+    // 저널 디자인으로 바꾼 뒤 처음 열 때는 저널로 시작한다 (이전 선택은 테마 메뉴에서 다시 고를 수 있다)
+    if (s.v !== 2) return { v: 2, theme: "journal", palettes };
+    return { v: 2, theme: THEMES.some((t) => t.id === s.theme) ? s.theme : "journal", palettes };
   } catch {
     return DEFAULT;
   }
@@ -160,6 +173,11 @@ function commit(next: ThemeSettings) {
 /** 앱 시작 시 한 번: 저장된 테마를 화면이 그려지기 전에 적용 */
 export function initTheme() {
   current = load();
+  try {
+    localStorage.setItem(KEY, JSON.stringify(current));
+  } catch {
+    /* noop */
+  }
   apply(current);
 }
 

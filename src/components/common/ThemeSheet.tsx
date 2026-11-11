@@ -10,6 +10,17 @@ import {
 
 /** 테마 카드 안의 작은 미리보기 — 각 테마의 생김새를 한눈에 */
 function ThemePreview({ id }: { id: ThemeId }) {
+  if (id === "journal") {
+    return (
+      <div className="flex h-14 flex-col justify-center gap-1 rounded-xl bg-[#f2f2f7] p-1.5">
+        <div className="h-4 rounded-md bg-white" />
+        <div className="flex gap-1">
+          <div className="h-4 flex-1 rounded-md bg-white" />
+          <div className="h-4 flex-1 rounded-md bg-[#007aff]" />
+        </div>
+      </div>
+    );
+  }
   if (id === "glass") {
     return (
       <div
@@ -60,7 +71,7 @@ export default function ThemeSheet({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {THEMES.map((t) => {
             const on = t.id === settings.theme;
             return (

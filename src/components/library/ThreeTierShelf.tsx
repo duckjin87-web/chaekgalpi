@@ -318,8 +318,7 @@ export default function ThreeTierShelf({ recentBooks, oldBooks, allBooks }: Thre
   return (
     <section className="mt-6">
       <div className="mb-2 flex items-baseline gap-2 px-1">
-        <h2 className="font-serif text-base font-bold text-ink">나의 서재 · 3단 책장</h2>
-        <span className="text-[9px] tracking-[0.25em] text-stone-400">LIBRARY SHELF</span>
+        <h2 className="font-serif text-[22px] font-bold tracking-tight text-ink">나의 서재</h2>
       </div>
 
       <div className="wood-frame overflow-hidden rounded-md p-2">

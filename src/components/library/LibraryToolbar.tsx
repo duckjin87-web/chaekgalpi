@@ -5,7 +5,6 @@ interface LibraryToolbarProps {
   onSearchChange: (value: string) => void;
   statusFilter: BookStatus | "전체";
   onStatusFilterChange: (value: BookStatus | "전체") => void;
-  onAddClick: () => void;
   years?: number[];
   yearFilter?: number | "전체";
   onYearFilterChange?: (value: number | "전체") => void;
@@ -18,7 +17,6 @@ export default function LibraryToolbar({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
-  onAddClick,
   years,
   yearFilter,
   onYearFilterChange,
@@ -77,12 +75,6 @@ export default function LibraryToolbar({
           </select>
         </>
       )}
-      <button
-        onClick={onAddClick}
-        className="bg-ink rounded-sm px-2.5 py-1 text-xs tracking-wide text-white shadow"
-      >
-        + 책 추가
-      </button>
     </div>
   );
 }

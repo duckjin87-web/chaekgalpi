@@ -119,7 +119,6 @@ export default function LibraryPage() {
         onSearchChange={setSearch}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
-        onAddClick={() => setShowAddModal(true)}
         years={showDateFilters ? years : undefined}
         yearFilter={yearFilter}
         onYearFilterChange={setYearFilter}
